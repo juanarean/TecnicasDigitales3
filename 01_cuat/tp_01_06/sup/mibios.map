@@ -1,0 +1,101 @@
+
+Configuración de la Memoria
+
+Nombre           Origen             Longitud           Atributos
+ram              0x0000000000000000 0x00000000ffff0000 !x
+rom32            0x00000000ffff0000 0x000000000000ffff xr
+*default*        0x0000000000000000 0xffffffffffffffff
+
+Guión del enlazador y mapa de memoria
+
+                0x0000000000009000                __STACK_START_16 = 0x9000
+                0x000000000000ffff                __STACK_END_16 = 0xffff
+                0x000000001fffb000                __STACK_START_32 = 0x1fffb000
+                0x000000001fffbfff                __STACK_END_32 = 0x1fffbfff
+                0x00000000000003ff                __STACK_SIZE_32 = ((__STACK_END_32 - __STACK_START_32) / 0x4)
+                0x0000000000000000                . = 0x0
+                0x0000000000000000                ___rutinas_vma_st = .
+
+.rutinas        0x0000000000000000       0x19 dirección de carga 0x00000000ffff0000
+ *(.key)
+ .key           0x0000000000000000       0x19 ./sup/rutinas.elf
+                0x0000000000000000                __leer_teclado
+                0x00000000ffff0000                ___rutinas_lma_st = LOADADDR (.rutinas)
+                0x0000000000000019                ___rutinas_size = SIZEOF (.rutinas)
+                0x0000000000300000                . = 0x300000
+                0x0000000000300000                ___kernel_vma_st = .
+
+.codigo_kernel32
+                0x0000000000300000       0x1d dirección de carga 0x00000000ffff0100
+ *(.kernel32)
+ .kernel32      0x0000000000300000       0x1d ./sup/main.elf
+                0x0000000000300000                kernel32_main
+                0x00000000ffff0100                ___kernel_lma_st = LOADADDR (.codigo_kernel32)
+                0x000000000000001d                ___kernel_size = SIZEOF (.codigo_kernel32)
+                0x00000000003e1000                __datos_no_iniciali_inicio = 0x3e1000
+                0x00000000003e1000                ___bss_vma_st = __datos_no_iniciali_inicio
+
+.bss            0x000000000030001d        0x4 dirección de carga 0x00000000ffff011d
+ *(.dat_no_inic*)
+ .dat_no_inic   0x000000000030001d        0x4 ./sup/uninitdata.elf
+                0x000000000030001d                algun_dato_no_inicializado
+ .bss           0x0000000000300021        0x0 ./sup/utils32.elf
+                0x00000000ffff1000                __datos_iniciali_inicio = 0xffff1000
+
+.data           0x00000000ffff1000       0x1e
+ *(.sys_tables)
+ .sys_tables    0x00000000ffff1000       0x1e ./sup/sys_tables.elf
+                0x00000000ffff1018                GDTR
+ .data          0x00000000ffff101e        0x0 ./sup/utils32.elf
+                0x00000000ffff1000                ___gdt_lma_st = LOADADDR (.data)
+                0x00000000ffff1500                __codigo_ini32 = 0xffff1500
+
+.codigo_init32  0x00000000ffff1500       0x9e
+ *(.init32)
+ .init32        0x00000000ffff1500       0x66 ./sup/init.elf
+ .init32        0x00000000ffff1566       0x38 ./sup/utils32.elf
+                0x00000000ffff1566                __fast_memcpy
+                0x00000000ffff2000                __codigo_init16 = 0xffff2000
+
+.text           0x00000000ffff2000     0x139d
+ *(.kernel16)
+ .kernel16      0x00000000ffff2000       0x38 ./sup/init.elf
+                0x00000000ffff2000                start16
+                0x00000000ffff2019                A20_Enable_No_Stack_return
+                0x00000000ffff201c                bios_init_return
+ .kernel16      0x00000000ffff2038     0x1365 ./sup/utils16.elf
+                0x00000000ffff3137                bios_init
+                0x00000000ffff335d                A20_Enable_No_Stack
+ .text          0x00000000ffff339d        0x0 ./sup/utils32.elf
+                0x00000000fffffff0                . = 0xfffffff0
+
+.codigo_reset   0x00000000fffffff0        0x5
+ *(.resetvec)
+ .resetvec      0x00000000fffffff0        0x5 ./sup/resetvec.elf
+                0x00000000fffffff0                reset_vector
+
+.fill_rom32     0x00000000fffffff5        0xa
+ FILL mask 0x90
+                0x00000000fffffffe                . = ((ORIGIN (rom32) + LENGTH (rom32)) - 0x1)
+ *fill*         0x00000000fffffff5        0x9 90
+                0x00000000fffffffe        0x1 BYTE 0x90
+
+.end_rom32      0x00000000ffffffff        0x1
+                0x00000000ffffffff        0x1 BYTE 0x90
+LOAD ./sup/resetvec.elf
+LOAD ./sup/init.elf
+LOAD ./sup/main.elf
+LOAD ./sup/sys_tables.elf
+LOAD ./sup/uninitdata.elf
+LOAD ./sup/utils16.elf
+LOAD ./sup/rutinas.elf
+LOAD ./sup/utils32.elf
+OUTPUT(./bin/bios.bin binary)
+
+.comment        0x0000000000000000       0x26
+ .comment       0x0000000000000000       0x26 ./sup/utils32.elf
+
+.note.GNU-stack
+                0x0000000000000000        0x0
+ .note.GNU-stack
+                0x0000000000000000        0x0 ./sup/utils32.elf
