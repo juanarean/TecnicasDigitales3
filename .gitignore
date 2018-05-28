@@ -1,0 +1,10 @@
+*.elf
+*.lst
+*.bin
+*.log
+*.elf32
+*.ini
+*.map
+*.log
+*.o
+*.out
