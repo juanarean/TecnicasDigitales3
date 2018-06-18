@@ -19,7 +19,7 @@ _lazo:
     loop _lazo
     add eax,[vectores]
     
-    mov [0x00411000],eax
+    mov [_sumatoria],eax
     
 _volver:
     leave
@@ -35,7 +35,7 @@ _sumatoria:
     resb 4
 
 ;--------------------------------------------------
-SECTION	.tarea1_datos nobits alloc noexec write
+SECTION	.tarea1_datos
 
 GLOBAL _DATO1
 

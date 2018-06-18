@@ -18,7 +18,6 @@ __attribute__(( section(".init32"))) byte __fast_memcpy(const dword *src, dword 
       }
       status = EXITO;   
    }
-//__asm__("xchg %bx,%bx");
    return(status);
 }
 

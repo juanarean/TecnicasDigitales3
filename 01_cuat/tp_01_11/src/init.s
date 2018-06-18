@@ -95,10 +95,14 @@ EXTERN ___tarea1_size
 EXTERN __codigo_ini32
 EXTERN __tabla_digitos
 EXTERN ___bss_tarea1_vma
-EXTERN ___batos_tarea1_vma
+EXTERN ___datos_tarea1_vma
 EXTERN __datos_no_iniciali_inicio
 EXTERN __STACK_START_32
 EXTERN __STACK_START_T1
+EXTERN _TAREA1_TXT
+EXTERN _TAREA1_BSS
+EXTERN _TAREA1_DATOS
+EXTERN _TAREA1_PILA
 
 EXTERN _cant_tablas_pag
 
@@ -167,7 +171,6 @@ kernel32_init:
    cmp eax, 1           ;Analizo el valor de retorno (1 Exito -1 Fallo)
    jne .guard
    
-
 ;-------------PAGINACION----------------
 
    ;->Inicializar la tabla de directorio de paginas 
@@ -184,7 +187,7 @@ kernel32_init:
     push eax
     push eax
     call __paginacion
-    add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
+    add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace (es lo mismo que pushear esp y despues recuperarlo con leave
     
     push eax            ;push cantdad de entradas al directorio de paginas.
     mov eax, __PDPT
@@ -234,19 +237,9 @@ kernel32_init:
     push eax            ;push cantdad de entradas al directorio de paginas.
     mov eax, __PDPT
     push eax
-    mov eax,___tarea1_vma_st  ;pagina tarea 1
+    mov eax, 0x00321000  ;pagina tarea 1
     push eax
-    mov eax, 0x00410000
-    push eax
-    call __paginacion
-    add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
-    
-    push eax            ;push cantdad de entradas al directorio de paginas.
-    mov eax, __PDPT
-    push eax
-    mov eax,___bss_tarea1_vma  ;pagina tarea 1 datos no inic
-    push eax
-    mov eax, 0x00411000
+    mov eax, ___tarea1_vma_st
     push eax
     call __paginacion
     add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
@@ -254,13 +247,32 @@ kernel32_init:
     push eax            ;push cantdad de entradas al directorio de paginas.
     mov eax, __PDPT
     push eax
-    mov eax,___batos_tarea1_vma  ;pagina tarea 1 datos inic
+    mov eax, 0xffff0000  ;como la tarea esta en rom dentro de los primeros 4k de 0xffff0000, tengo que paginarlo tambien para poder copiarlo.
     push eax
-    mov eax, 0x00412000
     push eax
     call __paginacion
     add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
     
+    push eax            ;push cantdad de entradas al directorio de paginas.
+    mov eax, __PDPT
+    push eax
+    mov eax, 0x00322000  ;pagina tarea 1 datos no inic
+    push eax
+    mov eax, ___bss_tarea1_vma
+    push eax
+    call __paginacion
+    add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
+    
+    push eax            ;push cantdad de entradas al directorio de paginas.
+    mov eax, __PDPT
+    push eax
+    mov eax, 0x00323000  ;pagina tarea 1 datos inic
+    push eax
+    mov eax, ___datos_tarea1_vma
+    push eax
+    call __paginacion
+    add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
+ 
     push eax            ;push cantdad de entradas al directorio de paginas.
     mov eax, __PDPT
     push eax
@@ -273,9 +285,9 @@ kernel32_init:
     push eax            ;push cantdad de entradas al directorio de paginas.
     mov eax, __PDPT
     push eax
-    mov eax,__STACK_START_T1  ;pagina datos no inic
+    mov eax, 0x1fffe000 ;pagina datos no inic
     push eax
-    mov eax, 0x00413000
+    mov eax, __STACK_START_T1
     push eax
     call __paginacion
     add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
@@ -289,6 +301,17 @@ kernel32_init:
     or eax,0x80000000
     xchg bx,bx
     mov CR0, eax
+    
+    ;Desempaquetar tarea1
+   push ebp
+   mov ebp, esp
+   push ___tarea1_size
+   push ___tarea1_vma_st
+   push ___tarea1_lma_st
+   call __fast_memcpy
+   leave
+   cmp eax, 1           ;Analizo el valor de retorno (1 Exito -1 Fallo)
+   jne .guard
 
    jmp CODE_SEL16:kernel32_main
 

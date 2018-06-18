@@ -1,13 +1,19 @@
-/**/
+/* DEFINICION DE PILAS Y MAS*/
    __STACK_START_16 = 0x9000;                                     /*SS=0x9000*/
    __STACK_END_16 = 0xffff;         
    __STACK_START_32 = 0x1fffb000;
    __STACK_END_32 = 0x1fffbfff;
    __STACK_SIZE_32 = ((__STACK_END_32 - __STACK_START_32) / 4);   /*32b word*/
-    __HANDLER_HIGH = 0X0000;
-    __PDPT = 0x00110000;
-    __STACK_START_T1 = 0x1fffe000;
-    __STACK_END_T1 = 0x1fffefff;
+    __HANDLER_HIGH = 0X0000;    /*BASE HANDLERS*/
+    __PDPT = 0x00110000;    /* BASE TABLAS DE PAGINACION */
+    __STACK_START_T1 = 0x00413000;
+    __STACK_END_T1 = 0x00413fff;
+    
+/*PAGINAS NO IDENTITY MAPPING */
+/*_TAREA1_TXT = 0X00410000;
+_TAREA1_BSS = 0X00411000;
+_TAREA1_DATOS = 0X00412000;
+_TAREA1_PILA = 0X00413000;*/
     
 
 MEMORY
@@ -48,7 +54,11 @@ SECTIONS
    __digitos_lma = LOADADDR(.td);
    __digitos_size = SIZEOF(.td);
    
-   . = 0x00320000;
+   __datos_no_iniciali_inicio = 0x003E0000;
+   ___bss_vma_st = __datos_no_iniciali_inicio;
+   .bss __datos_no_iniciali_inicio : { *(.dat_no_inic*); } > ram   
+      
+   . = 0x00410000;
    ___tarea1_vma_st = .;
    .codigo_tarea1 ___tarea1_vma_st :
       AT ( ___kernel_lma_st + ___kernel_size )   
@@ -56,18 +66,14 @@ SECTIONS
    ___tarea1_lma_st =  LOADADDR(.codigo_tarea1);  
    ___tarea1_size = SIZEOF(.codigo_tarea1);
    
-   __datos_no_iniciali_tarea1 = 0x00321000;
+   __datos_no_iniciali_tarea1 = 0x00411000;
    ___bss_tarea1_vma = __datos_no_iniciali_tarea1;
    .bss_t1 __datos_no_iniciali_tarea1 : { *(.tarea1_bss*); } > ram
    
-   __datos_tarea1 = 0x00322000;
-   ___batos_tarea1_vma = __datos_tarea1;
+   __datos_tarea1 = 0x00412000;
+   ___datos_tarea1_vma = __datos_tarea1;
    .bata_t1 __datos_tarea1 : { *(.tarea1_datos*); } > ram
-   
-   __datos_no_iniciali_inicio = 0x003E0000;
-   ___bss_vma_st = __datos_no_iniciali_inicio;
-   .bss __datos_no_iniciali_inicio : { *(.dat_no_inic*); } > ram   
-   
+
    __codigo_ini32 = 0xfffff000;
    .codigo_init32 __codigo_ini32 :
       AT ( 0xfffff000 )   

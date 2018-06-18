@@ -1,6 +1,5 @@
 SECTION  .kernel32 progbits
 GLOBAL kernel32_main
-EXTERN __tarea1
 EXTERN tecla
 EXTERN digitos
 EXTERN vectores
@@ -10,6 +9,7 @@ EXTERN GDTR
 EXTERN CODE_SEL
 EXTERN DATA_SEL
 EXTERN IDTR
+EXTERN __tarea1
 
 USE32
 kernel32_main:
@@ -47,7 +47,7 @@ sti
       xor eax,eax
       mov [_tiempo],eax
       ;xchg bx,bx
-      call 0x00410000
+      call __tarea1
       jmp _halt
       
 _test_tecla:      
