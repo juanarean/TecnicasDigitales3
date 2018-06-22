@@ -3,14 +3,12 @@
 SECTION .kernel16
 GLOBAL start16
 GLOBAL A20_Enable_No_Stack_return
-GLOBAL bios_init_return
 EXTERN __STACK_START_16
 EXTERN __STACK_END_16
 EXTERN GDTR
 EXTERN CODE_SEL
 EXTERN DATA_SEL
 EXTERN A20_Enable_No_Stack
-EXTERN bios_init
 
 USE16
 start16:
@@ -27,9 +25,6 @@ start16:
    jmp A20_Enable_No_Stack
    A20_Enable_No_Stack_return:
   
-   jmp bios_init
-   bios_init_return:
-
     o32 lgdt [cs:GDTR]             ;Cargo la GDT
     
 ; Establecer el up en Modo protegido:

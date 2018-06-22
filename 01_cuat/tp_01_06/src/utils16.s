@@ -3,7 +3,6 @@ USE16
 ;///////////////////////////////////////////////////////////////////////////////
 ;                   Funciones para habilitar el A20 Gate
 ;///////////////////////////////////////////////////////////////////////////////
-%include "./inc/init_pci.inc"
 
 %define     PORT_A_8042    0x60        ;Puerto A de E/S del 8042
 %define     CTRL_PORT_8042 0x64        ;Puerto de Estado del 8042
@@ -13,9 +12,7 @@ USE16
 %define     WRITE_OUT_8042 0xD1        ;Escribe en OUT lo almacenado en 0x60
 
 GLOBAL A20_Enable_No_Stack
-GLOBAL bios_init
 EXTERN A20_Enable_No_Stack_return
-EXTERN bios_init_return
 
 ;------------------------------------------------------------------------------
 ;| Título: A20_Enable_No_Stack                                                |
