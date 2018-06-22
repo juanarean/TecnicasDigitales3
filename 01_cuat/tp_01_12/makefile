@@ -1,5 +1,5 @@
 all:
-
+	$ mkdir -p sup
 	nasm -f elf32 ./src/resetvec.s -o ./sup/resetvec.elf
 	nasm -f elf32 ./src/init.s -o ./sup/init.elf
 	nasm -f elf32 ./src/main.s -o ./sup/main.elf
