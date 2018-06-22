@@ -10,7 +10,6 @@ GLOBAL HANDLER_TTICK
 GLOBAL HANDLER_TECLADO
 EXTERN tecla
 EXTERN _tiempo
-EXTERN _sumatoria
 EXTERN _pag_nuevas
 EXTERN _cant_tablas_pag
 EXTERN __paginacion
@@ -59,8 +58,6 @@ HANDLER_IRQ_13:
 ;--------------------------------------------------------------------
 
 HANDLER_IRQ_14:
-;cli
-xchg bx,bx
 
     push eax
     
@@ -72,13 +69,12 @@ xchg bx,bx
     shl eax,12               ;multiplico por 0x1000
     add eax,0x10000000      ;le agrego la base fisica de las nuevas paginas
     push eax
-    mov eax,[_sumatoria]    ;direccion a la que quise leer
+    mov eax,CR2    ;direccion a la que quise leer
     and eax,0x1ffff000      ;alineado a 4k
     push eax
     call __paginacion
     add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
     mov [_cant_tablas_pag],eax
-xchg bx,bx    
 
     mov eax,[_pag_nuevas]
     inc eax
@@ -86,9 +82,8 @@ xchg bx,bx
     
     pop eax
     
-;sti
-
-		    iret
+    add esp,4   ;saco el error code
+    iret
 ;--------------------------------------------------------------------
 
 HANDLER_TTICK:

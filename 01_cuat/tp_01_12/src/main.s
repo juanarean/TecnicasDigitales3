@@ -11,6 +11,7 @@ EXTERN DATA_SEL
 EXTERN IDTR
 EXTERN __tarea1
 EXTERN _pag_nuevas
+EXTERN _sumados
 
 
 USE32
@@ -38,6 +39,7 @@ xor edx,edx
 mov [digitos],eax
 mov [_cantidad],eax
 mov [_pag_nuevas],eax
+mov [_sumados],eax
 
 sti
 
@@ -122,9 +124,10 @@ _grabar_tecla:
     jmp _halt
     
 _grabar_vector:
+    mov edx,[_cantidad]
     mov eax,[digitos]
-    mov [vectores + edx],eax
-    add edx,4
+    mov [vectores + 4*edx],eax
+    add edx,1
     mov [_cantidad],edx
     xor eax,eax
     mov [tecla], al
