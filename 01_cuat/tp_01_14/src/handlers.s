@@ -90,6 +90,13 @@ HANDLER_IRQ_00:
 HANDLER_IRQ_06:		    
 
     xchg bx,bx
+    mov dx,0x06
+    iret
+    
+;--------------------------------------------------------------------
+
+HANDLER_IRQ_07:		    
+
     push eax
     push ebx
     push ecx
@@ -113,15 +120,8 @@ __salida_hand07:
     pop ecx
     pop ebx
     pop eax
-    iret
     
-;--------------------------------------------------------------------
-
-HANDLER_IRQ_07:		    
-
-			xchg bx,bx
-			mov dx,0x07
-		    iret
+    iret
 ;--------------------------------------------------------------------
 
 HANDLER_IRQ_08:		    
@@ -196,8 +196,9 @@ _guardar_t0:
     mov dword [tss_tarea0+OFFSET_EDI],edi
     mov dword [tss_tarea0+OFFSET_ESP0],esp
     mov eax, cr0
-    bt eax,2
-    je _cambio_tarea
+    and eax, CR0_TS
+    cmp eax, 0
+    jne _cambio_tarea
     fxsave [_mmxt0]
     jmp _cambio_tarea
     
@@ -218,9 +219,9 @@ _guardar_t0:
     mov dword [tss_tarea1+OFFSET_EDI],edi
     mov dword [tss_tarea1+OFFSET_ESP0],esp  
     mov eax, cr0
-    bt eax,2
-    je _cambio_tarea
-    xchg bx,bx
+    and eax, CR0_TS
+    cmp eax, 0
+    jne _cambio_tarea
     fxsave [_mmxt1]
     jmp _cambio_tarea
     
@@ -241,9 +242,9 @@ _guardar_t2:
     mov dword [tss_tarea2+OFFSET_EDI],edi
     mov dword [tss_tarea2+OFFSET_ESP0],esp
     mov eax, cr0
-    bt eax,2
-    je _cambio_tarea
-    xchg bx,bx
+    and eax, CR0_TS
+    cmp eax, 0
+    jne _cambio_tarea
     fxsave [_mmxt2]
     
 _cambio_tarea:
@@ -444,7 +445,7 @@ _comp_F:
       mov al, 0xF
       je _grabar_tecla
 _comp_0:      
-      cmp al, 0x0b          ; tecla D
+      cmp al, 0x0b          ; tecla 0
       jne _comp_Enter
       mov al, 0x00
       je _grabar_tecla
@@ -457,6 +458,7 @@ _comp_Enter:
       
    
 _grabar_tecla:
+
     movq mm0,[digitos]
     psllq mm0,4
     movd mm1,eax
@@ -474,6 +476,7 @@ _grabar_vector:
     mov [_cantidad],edx
     xor eax,eax
     mov [tecla], al
+    pxor mm0,mm0
     movq [digitos],mm0
     jmp __salida_hand_teclado
     

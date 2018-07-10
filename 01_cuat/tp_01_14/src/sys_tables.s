@@ -1,4 +1,4 @@
-SECTION	.sys_tables progbits alloc noexec nowrite
+SECTION	.sys_tables progbits alloc noexec ;nowrite
 
 GLOBAL GDTR
 GLOBAL CODE_SEL

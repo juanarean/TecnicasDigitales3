@@ -12,6 +12,7 @@ __tarea1:
     mov ecx,[_sumados_t1]
     cmp ecx,eax
     je _hlt
+
     movq mm2,[_sumatoria_t1]
     paddb mm2,[vectores + 8*ecx]
     inc ecx
