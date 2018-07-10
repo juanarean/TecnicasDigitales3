@@ -30,7 +30,7 @@ SECTION .ISR_HANDLERS
 %define OFFSET_LDT        96
 %define OFFSET_T          100
 %define OFFSET_BITMAP     102
-%define CR0_TS            0x00000004
+%define CR0_TS            0x00000008
 
 GLOBAL HANDLER_IRQ_GEN
 GLOBAL HANDLER_IRQ_00
@@ -94,9 +94,6 @@ HANDLER_IRQ_06:
     push ebx
     push ecx
     push edx
-    ;mov eax,cr0
-    ;and eax,0xfffffffb
-    ;mov cr0,eax
     clts
     mov eax,cr3
     cmp eax,__PDPT
