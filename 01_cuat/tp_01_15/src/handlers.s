@@ -41,8 +41,8 @@ GLOBAL HANDLER_IRQ_13
 GLOBAL HANDLER_IRQ_14
 GLOBAL HANDLER_TTICK
 GLOBAL HANDLER_TECLADO
-GLOBAL _td3_read
-EXTERN _read
+GLOBAL td3_halt
+
 EXTERN tecla
 EXTERN _tiempo
 EXTERN _tiempo_t1
@@ -69,6 +69,7 @@ EXTERN _mmxt0
 EXTERN _mmxt1
 EXTERN _mmxt2
 EXTERN CODE_SEL
+EXTERN DATA_SEL
 ;---------------------------------------------------------------
 ; Handlers
 ;---------------------------------------------------------------
@@ -268,7 +269,6 @@ _cambio_t0:
     mov eax,cr3
     cmp eax,[__PDPT0]
     je __salida_hand_ttick
-    xchg bx,bx
     mov eax,[__PDPT0]
     mov cr3,eax
     mov eax,cr0
@@ -307,7 +307,7 @@ _salto_1vezt0:
     jmp __IRET
     
 _cambio_t1:
-xchg bx,bx
+
     mov eax,cr3
     cmp eax,[__PDPT1]
     je __salida_hand_ttick
@@ -352,7 +352,7 @@ _salto_1vezt1:
     jmp __IRET
     
 _cambio_t2:
-xchg bx,bx
+
     mov eax,cr3
     cmp eax,[__PDPT2]
     je __salida_hand_ttick
@@ -473,26 +473,32 @@ _comp_Enter:
       
    
 _grabar_tecla:
-
-    movq mm0,[digitos]
-    psllq mm0,4
-    movd mm1,eax
-    por mm0,mm1
-    movq [digitos],mm0
-    xor eax,eax
+;xchg bx,bx
+    mov ebx,[digitos]
+    shr ebx,12
+    mov ecx,[digitos+4]
+    shl ecx,4
+    mov cl,bl
+    mov ebx,[digitos]
+    shl ebx,4
+    mov bl,al
     mov [tecla], al
+    mov [digitos+4],ecx
+    mov [digitos],ebx
     jmp __salida_hand_teclado
     
 _grabar_vector:
     mov edx,[_cantidad]
-    movq mm0,[digitos]
-    movq [vectores + 8*edx],mm0
+    mov eax,[digitos]
+    mov [vectores + 8*edx],eax
+    mov eax,[digitos+4]
+    mov [vectores + 8*edx + 1],eax
     add edx,1
     mov [_cantidad],edx
     xor eax,eax
     mov [tecla], al
-    pxor mm0,mm0
-    movq [digitos],mm0
+    mov [digitos],eax
+    mov [digitos+4],eax
     jmp __salida_hand_teclado
     
 __salida_hand_teclado:
@@ -508,15 +514,7 @@ __salida_hand_teclado:
 
 ;------------------------------------------------------------------------
 
-_td3_read:
-    push ebp
-    mov ebp,esp
-    mov eax,[ebp+12]
-    push eax
-    mov eax,[ebp+16]
-    push eax
-    call _read
-    pop ebp
-    retf 8
-        
+td3_halt:
+    hlt
+    retf
         

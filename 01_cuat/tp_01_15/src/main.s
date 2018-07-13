@@ -49,12 +49,10 @@ xor edx,edx
 mov [digitos],eax
 mov [_cantidad],eax
 mov [_pag_nuevas],eax
-mov [_sumados_t1],eax
-mov [_sumados_t2],eax
 
 mov dword [_tiempo_t1],0x0000000a
 mov dword [_tiempo_t2],0x00000015
-xchg bx,bx
+
 mov ax,SEL_TSS_TAREA0
 ltr ax
 

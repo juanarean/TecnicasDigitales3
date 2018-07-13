@@ -48,7 +48,7 @@ __attribute__(( section("init32"))) byte __paginacion(dword lineal, dword fisica
     return(status);
 }
 
-__attribute__(( section(".ISR_HANDLERS"))) dword _read(void * buffer, dword num_bytes)
+__attribute__(( section(".ISR_HANDLERS"))) dword td3_read(void * buffer, dword num_bytes)
 {
     dword i;
     dword j;

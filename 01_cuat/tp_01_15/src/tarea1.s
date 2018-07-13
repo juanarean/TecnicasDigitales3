@@ -2,35 +2,31 @@ SECTION  .tarea1 progbits
 GLOBAL __tarea1
 EXTERN vectores
 EXTERN _cantidad
-EXTERN SYSCALL_SEL
+EXTERN SYSCALL_1_SEL
+EXTERN SYSCALL_2_SEL
 
 USE32
 __tarea1:
-xchg bx,bx
+;xchg bx,bx
     mov eax,_buffer_t1
     push eax
-    mov eax,8
-    push eax
-    call SYSCALL_SEL:0
-    ;mov eax,[_cantidad]
-    cmp eax,1
-    jb _hlt
     mov ecx,[_sumados_t1]
-    cmp ecx,eax
-    je _hlt
-xchg bx,bx
-    movq mm2,[_sumatoria_t1]
-    paddb mm2,[vectores + 8*ecx]
     inc ecx
+    shl ecx,3
+    push ecx
+    call SYSCALL_1_SEL:0
+    pop ecx
+    add esp,4
+    cmp eax,ecx
+    jb _hlt
+    xchg bx,bx
+    movq mm2,[_sumatoria_t1]
+    paddb mm2,[_buffer_t1 + 8*ecx]
     mov [_sumados_t1],ecx
     movq [_sumatoria_t1],mm2
 
-    ;cmp eax,0x1fffffff
-    ;ja _volver
-    ;mov ecx,[eax]
-    ;mov [_lectura_t1],ecx
 _hlt:    
-    hlt
+    call SYSCALL_2_SEL:0
     jmp __tarea1
     
 ;-------------------------------------------------    

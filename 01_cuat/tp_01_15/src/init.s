@@ -178,6 +178,39 @@ kernel32_init:
    cmp eax, 1           ;Analizo el valor de retorno (1 Exito -1 Fallo)
    jne .guard
    
+       ;Desempaquetar tarea0
+   push ebp
+   mov ebp, esp
+   push ___tarea0_size
+   push 0x00301000
+   push ___tarea0_lma_st
+   call __fast_memcpy
+   leave
+   cmp eax, 1           ;Analizo el valor de retorno (1 Exito -1 Fallo)
+   jne .guard
+    
+    ;Desempaquetar tarea1
+   push ebp
+   mov ebp, esp
+   push ___tarea1_size
+   push 0x00321000
+   push ___tarea1_lma_st
+   call __fast_memcpy
+   leave
+   cmp eax, 1           ;Analizo el valor de retorno (1 Exito -1 Fallo)
+   jne .guard
+
+   ;Desempaquetar tarea2
+   push ebp
+   mov ebp, esp
+   push ___tarea2_size
+   push 0x00331000
+   push ___tarea2_lma_st
+   call __fast_memcpy
+   leave
+   cmp eax, 1           ;Analizo el valor de retorno (1 Exito -1 Fallo)
+   jne .guard
+
    
 ;-------------PAGINACION----------------
 
@@ -275,78 +308,6 @@ kernel32_init:
     call __paginacion
     add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
 
-    push eax            ;push cantdad de entradas al directorio de paginas.
-    mov eax, ATTR_SUP
-    push eax            ;atributos
-    mov eax, __PDPT
-    push eax
-    mov eax, 0xffff0000  ;como la tarea esta en rom dentro de los primeros 4k de 0xffff0000, tengo que paginarlo tambien para poder copiarlo.
-    push eax
-    push eax
-    call __paginacion
-    add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
-    
-    push eax            ;push cantdad de entradas al directorio de paginas.
-    mov eax, ATTR_SUP
-    push eax            ;atributos
-    mov eax, __PDPT
-    push eax
-    mov eax, 0x00301000  ;pagina tarea 0
-    push eax
-    mov eax, ___tarea0_vma_st
-    push eax
-    call __paginacion
-    add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
-    
-    push eax            ;push cantdad de entradas al directorio de paginas.
-    mov eax, ATTR_SUP
-    push eax            ;atributos
-    mov eax, __PDPT
-    push eax
-    mov eax, 0x00321000  ;pagina tarea 1
-    push eax
-    mov eax, ___tarea1_vma_st
-    push eax
-    call __paginacion
-    add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
-    
-    push eax            ;push cantdad de entradas al directorio de paginas.
-    mov eax, ATTR_SUP
-    push eax            ;atributos
-    mov eax, __PDPT
-    push eax
-    mov eax, 0x00331000  ;pagina tarea 2
-    push eax
-    mov eax, ___tarea2_vma_st
-    push eax
-    call __paginacion
-    add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
-    
-    push eax            ;push cantdad de entradas al directorio de paginas.
-    mov eax, ATTR_USU
-    push eax            ;atributos
-    mov eax, __PDPT
-    push eax
-    mov eax, 0x00322000  ;pagina tarea 1 datos no inic
-    push eax
-    mov eax, ___bss_tarea1_vma
-    push eax
-    call __paginacion
-    add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
-
-    push eax            ;push cantdad de entradas al directorio de paginas.
-    mov eax, ATTR_USU
-    push eax            ;atributos
-    mov eax, __PDPT
-    push eax
-    mov eax, 0x00332000  ;pagina tarea 1 datos no inic
-    push eax
-    mov eax, ___bss_tarea2_vma
-    push eax
-    call __paginacion
-    add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
-
-   
     mov [_cant_tablas_pag], eax ; guardo la cantidad de entradas en el directorio de paginas.
 
 ;-----------------------------------------------------------------------
@@ -722,45 +683,13 @@ kernel32_init:
     
     mov eax,CR0
     or eax,0x80000000
-;xchg bx,bx
+
     mov CR0, eax
     
-    ;Desempaquetar tarea0
-   push ebp
-   mov ebp, esp
-   push ___tarea0_size
-   push ___tarea0_vma_st
-   push ___tarea0_lma_st
-   call __fast_memcpy
-   leave
-   cmp eax, 1           ;Analizo el valor de retorno (1 Exito -1 Fallo)
-   jne .guard
-;xchg bx,bx    
-    ;Desempaquetar tarea1
-   push ebp
-   mov ebp, esp
-   push ___tarea1_size
-   push ___tarea1_vma_st
-   push ___tarea1_lma_st
-   call __fast_memcpy
-   leave
-   cmp eax, 1           ;Analizo el valor de retorno (1 Exito -1 Fallo)
-   jne .guard
-;xchg bx,bx
-   ;Desempaquetar tarea2
-   push ebp
-   mov ebp, esp
-   push ___tarea2_size
-   push ___tarea2_vma_st
-   push ___tarea2_lma_st
-   call __fast_memcpy
-   leave
-   cmp eax, 1           ;Analizo el valor de retorno (1 Exito -1 Fallo)
-   jne .guard
 
 ;---------------------------------------------------------------------
 ; Inicializo TSS.
-xchg bx,bx
+
      mov dword [tss_tarea0+OFFSET_BACKLINK], __tarea0
      mov dword [tss_tarea1+OFFSET_BACKLINK], __tarea1
      mov dword [tss_tarea2+OFFSET_BACKLINK], __tarea2

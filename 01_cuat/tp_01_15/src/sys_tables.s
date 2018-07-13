@@ -5,7 +5,8 @@ GLOBAL CODE_SEL
 GLOBAL DATA_SEL
 GLOBAL CODE_SEL_PL3
 GLOBAL DATA_SEL_PL3
-GLOBAL SYSCALL_SEL
+GLOBAL SYSCALL_1_SEL
+GLOBAL SYSCALL_2_SEL
 GLOBAL IDTR
 GLOBAL tss_tarea0
 GLOBAL tss_tarea1
@@ -36,7 +37,8 @@ EXTERN HANDLER_IRQ_14
 EXTERN HANDLER_TTICK
 EXTERN HANDLER_TECLADO
 EXTERN HANDLER_IRQ_GEN
-EXTERN _td3_read
+EXTERN td3_read
+EXTERN td3_halt
 
 %define LONG_TSS 104
 %define LONG_MMX 512
@@ -135,13 +137,19 @@ db	0
 db	11110011b
 db	11001111b
 db	0
-SYSCALL_SEL     equ     $ - GDT
-dw _td3_read     ;Offset 15-0
+SYSCALL_1_SEL     equ     $ - GDT
+dw td3_read     ;Offset 15-0
 dw CODE_SEL        ;Selector de codigo
 db 0x02            ;Se pasa una palabra por la pila.
 db 0xEC            ;Compuerta de llamada de 32 bits con DPL=3
 dw 0               ;Offset 31-16
-    
+SYSCALL_2_SEL     equ     $ - GDT
+dw td3_halt     ;Offset 15-0
+dw CODE_SEL        ;Selector de codigo
+db 0x00            ;Se pasa una palabra por la pila.
+db 0xEC            ;Compuerta de llamada de 32 bits con DPL=3
+dw 0               ;Offset 31-16
+
 GDT_SIZE	equ	$-GDT		;tamaño de la GDT.
 
 GDTR:

@@ -2,11 +2,12 @@ SECTION  .tarea0 progbits
 GLOBAL __tarea0
 EXTERN vectores
 EXTERN _cantidad
+EXTERN SYSCALL_2_SEL
 
 USE32
 __tarea0:
 ;xchg bx,bx
-    hlt
+    call SYSCALL_2_SEL:0
     jmp __tarea0
     
 ;-------------------------------------------------    
