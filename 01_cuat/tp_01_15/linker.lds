@@ -53,7 +53,7 @@ SECTIONS
    ___bss_vma_st = __datos_no_iniciali_inicio;
    .bss __datos_no_iniciali_inicio : { *(.dat_no_inic*); } > ram   
       
-    . = 0x00400000;
+    . = 0x00410000;
    ___tarea0_vma_st = .;
    .codigo_tarea0 ___tarea0_vma_st :
       AT ( ___kernel_lma_st + ___kernel_size )   
@@ -61,11 +61,11 @@ SECTIONS
    ___tarea0_lma_st =  LOADADDR(.codigo_tarea0);  
    ___tarea0_size = SIZEOF(.codigo_tarea0);
    
-   __datos_no_iniciali_tarea0 = 0x00401000;
+   __datos_no_iniciali_tarea0 = 0x00411000;
    ___bss_tarea0_vma = __datos_no_iniciali_tarea0;
    .bss_t0 __datos_no_iniciali_tarea0 : { *(.tarea0_bss*); } > ram
    
-   __datos_tarea0 = 0x00402000;
+   __datos_tarea0 = 0x00412000;
    ___datos_tarea0_vma = __datos_tarea0;
    .bata_t0 __datos_tarea0 : { *(.tarea0_datos*); } > ram
    
@@ -85,7 +85,7 @@ SECTIONS
    ___datos_tarea1_vma = __datos_tarea1;
    .bata_t1 __datos_tarea1 : { *(.tarea1_datos*); } > ram
    
-   . = 0x00420000;
+   . = 0x00410000;
    ___tarea2_vma_st = .;
    .codigo_tarea2 ___tarea2_vma_st :
       AT ( ___tarea1_lma_st + ___tarea1_size )   
@@ -93,11 +93,11 @@ SECTIONS
    ___tarea2_lma_st =  LOADADDR(.codigo_tarea2);  
    ___tarea2_size = SIZEOF(.codigo_tarea2);
    
-   __datos_no_iniciali_tarea2 = 0x00421000;
+   __datos_no_iniciali_tarea2 = 0x00411000;
    ___bss_tarea2_vma = __datos_no_iniciali_tarea2;
    .bss_t2 __datos_no_iniciali_tarea2 : { *(.tarea2_bss*); } > ram
    
-   __datos_tarea2 = 0x00422000;
+   __datos_tarea2 = 0x00412000;
    ___datos_tarea2_vma = __datos_tarea2;
    .bata_t2 __datos_tarea2 : { *(.tarea2_datos*); } > ram
 
