@@ -42,7 +42,7 @@ GLOBAL HANDLER_IRQ_14
 GLOBAL HANDLER_TTICK
 GLOBAL HANDLER_TECLADO
 GLOBAL td3_halt
-
+GLOBAL td3_read
 EXTERN tecla
 EXTERN _tiempo
 EXTERN _tiempo_t1
@@ -143,7 +143,7 @@ HANDLER_IRQ_13:
 ;--------------------------------------------------------------------
 
 HANDLER_IRQ_14:
-
+xchg bx,bx
     push eax
     
     mov eax,[_cant_tablas_pag]
@@ -475,24 +475,27 @@ _comp_Enter:
 _grabar_tecla:
 ;xchg bx,bx
     mov ebx,[digitos]
-    shr ebx,12
+    and ebx,0xf0000000
+    shr ebx,28
     mov ecx,[digitos+4]
+    and ecx,0x0fffffff
     shl ecx,4
-    mov cl,bl
+    or cl,bl
     mov ebx,[digitos]
     shl ebx,4
-    mov bl,al
+    or bl,al
     mov [tecla], al
     mov [digitos+4],ecx
     mov [digitos],ebx
     jmp __salida_hand_teclado
     
 _grabar_vector:
+xchg bx,bx
     mov edx,[_cantidad]
     mov eax,[digitos]
     mov [vectores + 8*edx],eax
     mov eax,[digitos+4]
-    mov [vectores + 8*edx + 1],eax
+    mov [vectores + 8*edx + 4],eax
     add edx,1
     mov [_cantidad],edx
     xor eax,eax
@@ -513,7 +516,35 @@ __salida_hand_teclado:
    iretd
 
 ;------------------------------------------------------------------------
-
+td3_read:
+xchg bx,bx
+    push ebp
+    mov ebp,esp
+    xor eax,eax
+    mov esi,vectores
+    mov edi,[ebp+16]
+    mov ecx,[ebp+12]
+    cmp ecx,0
+    je ret_read
+    mov edx,_cantidad
+    cmp edx,0
+    je ret_read
+    shl edx,3
+    cmp edx,ecx
+    jae loop_read
+    mov ecx,edx
+loop_read:
+    mov bl,[esi]
+    mov [edi],bl
+    inc esi
+    inc edi
+    inc eax
+    loop loop_read
+    
+ret_read:    
+    pop ebp
+    retf 0
+     
 td3_halt:
     hlt
     retf

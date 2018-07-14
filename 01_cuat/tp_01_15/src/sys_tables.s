@@ -56,6 +56,7 @@ tss_tarea1 times LONG_TSS db 0    ;TSS tarea 1
 ; TSS tarea 2
 tss_tarea2 times LONG_TSS db 0    ;TSS tarea 2
 
+align 512
 ;-----------------------------------------------------------------------------------------------------------
 ; Espacio para resguardar registros SIMD
 _mmxt0 times LONG_MMX db 0
@@ -64,6 +65,7 @@ _mmxt1 times LONG_MMX db 0
 
 _mmxt2 times LONG_MMX db 0
 
+align 8
 ;******************************************/
 ;GDT
 

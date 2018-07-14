@@ -1,7 +1,7 @@
 
 #include "../inc/sys_types.h"
-extern word _cantidad;
-extern byte * vectores;
+extern word * _cantidad;
+extern dword * vectores;
 
 __attribute__(( section(".init32"))) byte __fast_memcpy(const dword *src, dword *dst, dword length)
 {
@@ -48,24 +48,28 @@ __attribute__(( section("init32"))) byte __paginacion(dword lineal, dword fisica
     return(status);
 }
 
-__attribute__(( section(".ISR_HANDLERS"))) dword td3_read(void * buffer, dword num_bytes)
+/*__attribute__(( section(".ISR_HANDLERS"))) dword td3_read(void * buffer, dword num_bytes)
 {
     dword i;
     dword j;
     dword k;
     k = 0;
-    byte * dst;
+    dword * dst;
     dst = buffer;
+    dword * src;
+    src = vectores;
     
-    if(num_bytes>0)
+    if(num_bytes>0 && *_cantidad>0)
     {
-        for(i=0;i<_cantidad;i++)
+        for(i=0;i<*_cantidad;i++)
         {
-                for(j=0;j<8;j++)
+                for(j=0;j<2;j++)
                 {
-                    *dst++ = *vectores++;
+                    *dst = *src;
+                    dst++;
+                    src++;
 
-                    k++;
+                    k=+8;
                 }
                 if(k>=num_bytes)    break;
         }
@@ -73,3 +77,4 @@ __attribute__(( section(".ISR_HANDLERS"))) dword td3_read(void * buffer, dword n
 
     return(k);
 }
+*/
