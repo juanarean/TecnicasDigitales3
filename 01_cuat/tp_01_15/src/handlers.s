@@ -490,13 +490,13 @@ _grabar_tecla:
     jmp __salida_hand_teclado
     
 _grabar_vector:
-xchg bx,bx
+;xchg bx,bx
     mov edx,[_cantidad]
     mov eax,[digitos]
     mov [vectores + 8*edx],eax
     mov eax,[digitos+4]
     mov [vectores + 8*edx + 4],eax
-    add edx,1
+    inc edx
     mov [_cantidad],edx
     xor eax,eax
     mov [tecla], al
@@ -517,16 +517,21 @@ __salida_hand_teclado:
 
 ;------------------------------------------------------------------------
 td3_read:
-xchg bx,bx
+;xchg bx,bx 
     push ebp
     mov ebp,esp
+       
+    push ebx
+    push ecx
+    push edx
+    
     xor eax,eax
     mov esi,vectores
     mov edi,[ebp+16]
     mov ecx,[ebp+12]
     cmp ecx,0
     je ret_read
-    mov edx,_cantidad
+    mov edx,[_cantidad]
     cmp edx,0
     je ret_read
     shl edx,3
@@ -542,8 +547,11 @@ loop_read:
     loop loop_read
     
 ret_read:    
+    pop edx
+    pop ecx
+    pop ebx
     pop ebp
-    retf 0
+    retf 8
      
 td3_halt:
     hlt

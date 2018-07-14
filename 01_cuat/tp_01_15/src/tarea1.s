@@ -15,13 +15,11 @@ __tarea1:
     shl ecx,3
     push ecx
     call SYSCALL_1_SEL:0
-    pop ecx
-    add esp,4
     cmp eax,ecx
     jb _hlt
-    xchg bx,bx
     movq mm2,[_sumatoria_t1]
-    paddb mm2,[_buffer_t1 + 8*ecx]
+    paddb mm2,[_buffer_t1 + eax-8]
+    shr ecx,3
     mov [_sumados_t1],ecx
     movq [_sumatoria_t1],mm2
 
