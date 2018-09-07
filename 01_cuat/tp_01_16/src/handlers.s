@@ -83,6 +83,7 @@ EXTERN DATA_SEL
 ;---------------------------------------------------------------
 ; Handlers
 ;---------------------------------------------------------------
+; Handelr generico para que todas las excepsiones tengan una rutina de atención
 HANDLER_IRQ_GEN:		    
 
 			xchg bx,bx
@@ -108,7 +109,7 @@ HANDLER_IRQ_06:
     iret
     
 ;--------------------------------------------------------------------
-
+; Handler que guarda los mmx cuando se intenta ejecutar una instruccion SIMD con cr0.ts=0.
 HANDLER_IRQ_07:		    
 
     push eax
@@ -151,7 +152,7 @@ HANDLER_IRQ_13:
 			mov dx,0x13
 		    iret
 ;--------------------------------------------------------------------
-
+; Handler de page fault, genera una nueva pagina mirando en CR2 que se quiso acceder.
 HANDLER_IRQ_14:
 xchg bx,bx
     push eax
@@ -180,9 +181,9 @@ xchg bx,bx
     add esp,4   ;saco el error code
     iret
 ;--------------------------------------------------------------------
-
+; SCHEDULER
 HANDLER_TTICK:
-;xchg bx,bx
+; Primero veo en que tarea estoy y guardo el contexto.
     push    eax
     xor eax,eax
     mov ax,ds
@@ -315,6 +316,7 @@ _guardar_t4:
 
     
 _cambio_tarea:
+; Verifico cual de las tareas cumplió su tiempo y voy a cambiar a esa tarea.
     mov eax,[_tiempo_t1]
     dec eax
     mov [_tiempo_t1],eax
@@ -342,18 +344,17 @@ _cambio_tarea:
 _cambio_t0:
     mov eax,cr3
     cmp eax,[__PDPT0]
-    je __salida_hand_ttick
+    je __salida_hand_ttick      ;si ya estoy en la tarea no cargo nada y voy al IRET directamente
     mov eax,[__PDPT0]
-    mov cr3,eax
+    mov cr3,eax                 ;Cambio el arbol de paginacion.
     mov eax,cr0
     or  eax,CR0_TS
-    mov cr0,eax
-    mov al,20h	;Indicamos al PIC que finaliza la Interrupción
+    mov cr0,eax                 ; pongo el TS en 0.
+    mov al,20h                  ;Indicamos al PIC que finaliza la Interrupción
     out 20h,al  
-    mov eax,[tss_tarea0+OFFSET_SS0]
+    mov eax,[tss_tarea0+OFFSET_SS0] ; empiezo a cargar el contexto
     mov word ss,ax
     mov dword esp,[tss_tarea0+OFFSET_ESP0]
-    ;mov dword eax,[tss_tarea0+OFFSET_EAX]
     mov dword ebx,[tss_tarea0+OFFSET_ECX]
     mov dword ecx,[tss_tarea0+OFFSET_EDX]
     mov dword edx,[tss_tarea0+OFFSET_EBX]
@@ -367,7 +368,7 @@ _cambio_t0:
     mov word ds,ax
     mov eax,esp
     cmp esp,__STACK_START_T_PL0 + 0x00001000
-    jne _salto_1vezt0
+    jne _salto_1vezt0           ; si la pila nunca fue utilizada, entonces no puedo solo hacer IRET, tengo que poner en la pila los FLAGS, el CS y el IP.
     mov eax,0x200
     push eax
     xor eax,eax
@@ -384,16 +385,15 @@ _cambio_t1:
 
     mov eax,cr3
     cmp eax,[__PDPT1]
-    je __salida_hand_ttick
+    je __salida_hand_ttick      ;si ya estoy en la tarea no cargo nada y voy al IRET directamente
     mov eax,[__PDPT1]
-    mov cr3,eax
+    mov cr3,eax                 ;Cambio el arbol de paginacion.
     mov eax,cr0
     or  eax,CR0_TS
-    mov cr0,eax
-    mov al,20h	;Indicamos al PIC que finaliza la Interrupción
+    mov cr0,eax                 ; pongo el TS en 0.
+    mov al,20h                  ;Indicamos al PIC que finaliza la Interrupción
     out 20h,al    
-    mov dword esp,[tss_tarea1+OFFSET_ESP0]
-    ;mov dword eax,[tss_tarea1+OFFSET_EAX]
+    mov dword esp,[tss_tarea1+OFFSET_ESP0] ; empiezo a cargar el contexto
     mov dword ebx,[tss_tarea1+OFFSET_ECX]
     mov dword ecx,[tss_tarea1+OFFSET_EDX]
     mov dword edx,[tss_tarea1+OFFSET_EBX]
@@ -407,7 +407,7 @@ _cambio_t1:
     mov word ds,ax
     mov eax,esp
     cmp esp,__STACK_START_T_PL0 + 0x00001000
-    jne _salto_1vezt1
+    jne _salto_1vezt1           ; si la pila nunca fue utilizada, entonces no puedo solo hacer IRET, tengo que poner en la pila los FLAGS, el CS y el IP.
     mov dword eax,[tss_tarea1+OFFSET_SS]
     push eax
     mov dword eax,[tss_tarea1+OFFSET_ESP]
@@ -419,7 +419,6 @@ _cambio_t1:
     push eax
     mov eax, __tarea1
     push eax
-;    xchg bx,bx
 _salto_1vezt1:
     mov dword eax,[tss_tarea1+OFFSET_EAX]
     mov dword [_tiempo_t1],0xa
@@ -429,16 +428,15 @@ _cambio_t2:
 
     mov eax,cr3
     cmp eax,[__PDPT2]
-    je __salida_hand_ttick
+    je __salida_hand_ttick      ;si ya estoy en la tarea no cargo nada y voy al IRET directamente
     mov eax,[__PDPT2]
-    mov cr3,eax
+    mov cr3,eax                 ;Cambio el arbol de paginacion.
     mov eax,cr0
     or  eax,CR0_TS
-    mov cr0,eax
-    mov al,20h	;Indicamos al PIC que finaliza la Interrupción
+    mov cr0,eax                 ; pongo el TS en 0.
+    mov al,20h                  ;Indicamos al PIC que finaliza la Interrupción
     out 20h,al    
-    mov dword esp,[tss_tarea2+OFFSET_ESP0]
-    ;mov dword eax,[tss_tarea1+OFFSET_EAX]
+    mov dword esp,[tss_tarea2+OFFSET_ESP0] ; empiezo a cargar el contexto
     mov dword ebx,[tss_tarea2+OFFSET_ECX]
     mov dword ecx,[tss_tarea2+OFFSET_EDX]
     mov dword edx,[tss_tarea2+OFFSET_EBX]
@@ -452,7 +450,7 @@ _cambio_t2:
     mov word ds,ax
     mov eax,esp
     cmp esp,__STACK_START_T_PL0 + 0x00001000
-    jne _salto_1vezt2
+    jne _salto_1vezt2           ; si la pila nunca fue utilizada, entonces no puedo solo hacer IRET, tengo que poner en la pila los FLAGS, el CS y el IP.
     mov dword eax,[tss_tarea1+OFFSET_SS]
     push eax
     mov dword eax,[tss_tarea1+OFFSET_ESP]
@@ -464,7 +462,6 @@ _cambio_t2:
     push eax
     mov eax, __tarea2
     push eax
-;    xchg bx,bx
 _salto_1vezt2:
     mov dword eax,[tss_tarea2+OFFSET_EAX]
     mov dword [_tiempo_t2],0x14
@@ -474,16 +471,15 @@ _cambio_t3:
 
     mov eax,cr3
     cmp eax,[__PDPT3]
-    je __salida_hand_ttick
+    je __salida_hand_ttick      ;si ya estoy en la tarea no cargo nada y voy al IRET directamente
     mov eax,[__PDPT3]
-    mov cr3,eax
+    mov cr3,eax                 ;Cambio el arbol de paginacion.
     mov eax,cr0
     or  eax,CR0_TS
-    mov cr0,eax
-    mov al,20h	;Indicamos al PIC que finaliza la Interrupción
+    mov cr0,eax                 ; pongo el TS en 0.
+    mov al,20h                  ;Indicamos al PIC que finaliza la Interrupción
     out 20h,al    
-    mov dword esp,[tss_tarea3+OFFSET_ESP0]
-    ;mov dword eax,[tss_tarea1+OFFSET_EAX]
+    mov dword esp,[tss_tarea3+OFFSET_ESP0] ; empiezo a cargar el contexto
     mov dword ebx,[tss_tarea3+OFFSET_ECX]
     mov dword ecx,[tss_tarea3+OFFSET_EDX]
     mov dword edx,[tss_tarea3+OFFSET_EBX]
@@ -497,7 +493,7 @@ _cambio_t3:
     mov word ds,ax
     mov eax,esp
     cmp esp,__STACK_START_T_PL0 + 0x00001000
-    jne _salto_1vezt3
+    jne _salto_1vezt3           ; si la pila nunca fue utilizada, entonces no puedo solo hacer IRET, tengo que poner en la pila los FLAGS, el CS y el IP.
     mov dword eax,[tss_tarea3+OFFSET_SS]
     push eax
     mov dword eax,[tss_tarea3+OFFSET_ESP]
@@ -509,7 +505,6 @@ _cambio_t3:
     push eax
     mov eax, __tarea3
     push eax
-;    xchg bx,bx
 _salto_1vezt3:
     mov dword eax,[tss_tarea3+OFFSET_EAX]
     mov dword [_tiempo_t3],0x20
@@ -519,16 +514,15 @@ _cambio_t4:
 
     mov eax,cr3
     cmp eax,[__PDPT4]
-    je __salida_hand_ttick
+    je __salida_hand_ttick      ;si ya estoy en la tarea no cargo nada y voy al IRET directamente
     mov eax,[__PDPT4]
-    mov cr3,eax
+    mov cr3,eax                 ;Cambio el arbol de paginacion.
     mov eax,cr0
     or  eax,CR0_TS
-    mov cr0,eax
-    mov al,20h	;Indicamos al PIC que finaliza la Interrupción
+    mov cr0,eax                 ; pongo el TS en 0.
+    mov al,20h                  ;Indicamos al PIC que finaliza la Interrupción
     out 20h,al    
-    mov dword esp,[tss_tarea4+OFFSET_ESP0]
-    ;mov dword eax,[tss_tarea1+OFFSET_EAX]
+    mov dword esp,[tss_tarea4+OFFSET_ESP0] ; empiezo a cargar el contexto
     mov dword ebx,[tss_tarea4+OFFSET_ECX]
     mov dword ecx,[tss_tarea4+OFFSET_EDX]
     mov dword edx,[tss_tarea4+OFFSET_EBX]
@@ -542,7 +536,7 @@ _cambio_t4:
     mov word ds,ax
     mov eax,esp
     cmp esp,__STACK_START_T_PL0 + 0x00001000
-    jne _salto_1vezt4
+    jne _salto_1vezt4           ; si la pila nunca fue utilizada, entonces no puedo solo hacer IRET, tengo que poner en la pila los FLAGS, el CS y el IP.
     mov dword eax,[tss_tarea4+OFFSET_SS]
     push eax
     mov dword eax,[tss_tarea4+OFFSET_ESP]
@@ -554,7 +548,6 @@ _cambio_t4:
     push eax
     mov eax, __tarea4
     push eax
-;    xchg bx,bx
 _salto_1vezt4:
     mov dword eax,[tss_tarea4+OFFSET_EAX]
     mov dword [_tiempo_t4],0x2a
@@ -579,12 +572,12 @@ HANDLER_TECLADO:
     xor eax,eax
     in al, 0x60
     bt ax,7
-    jc __salida_hand_teclado
+    jc __salida_hand_teclado    ; si se soltó la tecla salgo del hanlder
 
 _test_tecla:      
       mov ecx, 9
       mov ebx, 2
-_comparaciones:      
+_comparaciones:                 ; comparo del 0 al 9
       cmp al, bl           
       jne _sig_comp
       dec al
@@ -637,7 +630,6 @@ _comp_Enter:
       
    
 _grabar_tecla:
-;xchg bx,bx
     mov ebx,[digitos]
     and ebx,0xf0000000
     shr ebx,28
@@ -654,7 +646,6 @@ _grabar_tecla:
     jmp __salida_hand_teclado
     
 _grabar_vector:
-;xchg bx,bx
     mov edx,[_cantidad]
     mov eax,[digitos]
     mov [vectores + 8*edx],eax
@@ -680,8 +671,8 @@ __salida_hand_teclado:
    iretd
 
 ;------------------------------------------------------------------------
+; SYSCALL de lectura de vector de teclas
 td3_read:
-;xchg bx,bx 
     push ebp
     mov ebp,esp
        
@@ -716,7 +707,9 @@ ret_read:
     pop ebx
     pop ebp
     retf 8
-     
+    
+;------------------------------------------------------------------------
+; SYSCALL halt
 td3_halt:
     hlt
     retf

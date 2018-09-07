@@ -22,6 +22,10 @@ EXTERN _tiempo_t3
 EXTERN _tiempo_t4
 
 %define CR4_MASK 0x00000600
+%define TIEMPOT1 0x0000000a
+%define TIEMPOT2 0x00000014
+%define TIEMPOT3 0x0000001e
+%define TIEMPOT4 0x00000028
 
 USE32
 kernel32_main:
@@ -48,24 +52,24 @@ xor ebx,ebx
 xor ecx,ecx
 xor edx,edx
 
-mov [digitos],eax
+mov [digitos],eax       ;seteo en 0 las variables que voy a utilizar.
 mov [_cantidad],eax
-mov [_pag_nuevas],eax
+;mov [_pag_nuevas],eax
 
-mov dword [_tiempo_t1],0x0000000a
-mov dword [_tiempo_t2],0x00000015
-mov dword [_tiempo_t3],0x00000021
-mov dword [_tiempo_t4],0x0000002b
+mov dword [_tiempo_t1],TIEMPOT1     ;Seteo los tiempos en que se ejecuta cada tarea.
+mov dword [_tiempo_t2],TIEMPOT2
+mov dword [_tiempo_t3],TIEMPOT3
+mov dword [_tiempo_t4],TIEMPOT4
 
-mov ax,SEL_TSS_TAREA0           ;Para poder hacer cambios de tarea tengo que poner cualquier selector de tarea con ts=0 (task no busy). para poder hacer el cambio manual. si fuera automatico el procesador se encarga de chequear y modificar este bit.
-ltr ax
+mov ax,SEL_TSS_TAREA0
+ltr ax           ;Para poder hacer cambios de tarea tengo que poner cualquier selector de tarea con ts=0 (task no busy). para poder hacer el cambio manual. si fuera automatico el procesador se encarga de chequear y modificar este bit.
 
 xor eax,eax
 
-sti
+sti     ; habilito interrupciones.
 
 _bucle_main:
 
-hlt
+hlt         ; quedo aca hasta que salta la primera interrupcion del timer.
 jmp _bucle_main
 

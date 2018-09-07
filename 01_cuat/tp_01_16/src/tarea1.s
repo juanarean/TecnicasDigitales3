@@ -7,16 +7,16 @@ EXTERN SYSCALL_2_SEL
 
 USE32
 __tarea1:
-;xchg bx,bx
+
     mov eax,_buffer_t1
-    push eax
+    push eax            ; le envio donde copiar los datos
     mov ecx,[_sumados_t1]
     inc ecx
     shl ecx,3
-    push ecx
+    push ecx            ; le envio cuantos bytes copiar
     call SYSCALL_1_SEL:0
     cmp eax,ecx
-    jb _hlt
+    jb _hlt     ;si lo que se leyo es menor a lo que se pidio no hago la suma, no hay datos nuevos.
     movq mm2,[_sumatoria_t1]
     paddb mm2,[_buffer_t1 + eax-8]
     shr ecx,3
@@ -39,10 +39,10 @@ _sumatoria_t1:
 _lectura_t1:
     resb 4
     
-_sumados_t1:
+_sumados_t1:    ; lleva la cuanta de cuantos numeros se fueron sumando.
     resb 4
 
-_buffer_t1:
+_buffer_t1: 
     resb 8
 
 ;--------------------------------------------------
