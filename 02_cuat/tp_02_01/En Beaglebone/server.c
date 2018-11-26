@@ -23,27 +23,27 @@
 
 #define ERROR	-1
 #define PORT 8000		/* El puerto donde se conectará, servidor */
-#define BACKLOG 10	/* Tamaño de la cola de conexiones recibidas */
+#define BACKLOG 2	/* Tamaño de la cola de conexiones recibidas */
 #define MEM_SIZE 40
 
 
-/* ******************************************************************************************************************************************* */
+/* ****************************************************************************************************************************** */
 
-void child(int);
-int aceptar_pedidos(int, int);		//este es la rutina del padre, aceptar pedidos y a los hijo le manda la direccion a la que mandar la data.
 void mi_sigchld(int, siginfo_t *, void *);
+void child(int);
+int aceptar_pedidos(int, int);		//este es la rutina del padre, aceptar pedidos y a los hijo le manda el socket conectado.
 
-int fdi2c;
+/*int fdi2c;
 char dato_rx[2];
 char pointer=0;
-float temp;
+float temp;*/
 
 key_t keyshm, keysem;
-int shmid, semid;
+int shmid, semid, cant_conex = 0;
 struct sembuf sb = {0, -1, SEM_UNDO}; 
 
 	union semun {
-	int	val;			/* valor para SETVAL */
+	int	val;					/* valor para SETVAL */
 	struct	semid_ds *buf;		/* buffer para IPC_STAT e IPC_SET */
 	unsigned short int *array;	/* valor para GETALL y SETALL */
 	struct seminfo *__buf;		/* buffer para IPC_INFO */
@@ -81,9 +81,9 @@ int main ()
       exit(ERROR);
    };
 
-/* **************************************************************************************************************************************
+/* **********************************************************************************************************************************
  * preparo para recivir conexiones.
- * ************************************************************************************************************************************* */
+ * ****************************************************************************************************************************** */
 /*Crea un socket y verifica si hubo algún error*/
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) 
 	{
@@ -112,7 +112,7 @@ int main ()
 		exit(ERROR);
         }
 
-/* ************************************************************************************************************************************** */
+/* ****************************************************************************************************************************** */
 /* Shared memory: */
 
   if ((keyshm = ftok("server.c", 'R')) == -1) 
@@ -134,7 +134,7 @@ int main ()
 				exit(1);
 				}
 
-/* ************************************************************************************************************************************** */
+/* ****************************************************************************************************************************** */
 /* Inicio semáforo: */
 
 if ((keysem = ftok("server.c", 'J')) == -1) {
@@ -156,7 +156,7 @@ if ((keysem = ftok("server.c", 'J')) == -1) {
         }
 
 
-/* ************************************************************************************************************************************** */
+/* ****************************************************************************************************************************** */
 /* Proceso para leer la temperatura: */
 
 pid = fork();
@@ -188,7 +188,7 @@ if (!pid)
         
     while(1)
 	 {
-        sleep(1);        
+        usleep(100000);        
         /* Intento leer 2 bytes de temperatura */
         aux = read(fdi2c, dato_rx, 2);
     
@@ -242,10 +242,20 @@ if (!pid)
 	
 }
 
-/* ************************************************************************************************************************************** */
+/* ****************************************************************************************************************************** */
   do{
-    j=aceptar_pedidos(sockfd, i);
-    if(j==i)
+	  if(cant_conex >= 1000)
+	  {
+		  printf("Máximo de conexiones alcanzado\n");
+		  if(wait_event_interruptible(queue, cant_conex < 1000))
+		  {
+			  printf("Error en wait_event_interruptible\n");
+			  exit(ERROR);
+		  }
+	  }
+	  
+    sock_child=aceptar_pedidos(sockfd, cant_conex);
+    if(sock_child!=0)
     {
     pid = fork();
     if (pid == -1)
@@ -254,61 +264,21 @@ if (!pid)
       exit(1);
     }
     else if (!pid)						// Si es el hijo
-      child(i);
+      child(sock_child);
     }
-    else	i = j;
-    i++;
+    else	cant_conex++;
   }while(1);
       
   return(0);
 }
 
-/* ******************************************************************************************************************************************* */
-/*  Proceso hijo para atender clientes: manda mensajes cada 1 segundos por el pueto PORT+i = 10000+i */
+/* ****************************************************************************************************************************** */
+/*  Proceso hijo para atender clientes: manda mensajes cada 1 segundos */
 
-void child(int i)					
+void child(int sock)					
 {
   int x=0;
-  int sockfd, newsock;  /*File Descriptor para sockets*/
-  struct sockaddr_in my_addr;	/* contendrá la dirección IP y el número de puerto local */
-  unsigned int sin_size = sizeof(struct sockaddr_in);
   float *data, temp;
-  
-  printf("crando socket en %d\n",(PORT+i));
-//*Crea un socket y verifica si hubo algún error*/
-	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) 
-	{
-	fprintf(stderr, "Error en función socket. Código de error %s\n", strerror(sockfd));
-	exit(ERROR);
-	}
-	
-/* Asignamos valores a la estructura my_addr */
-
-	my_addr.sin_family = AF_INET;		/*familia de sockets INET para UNIX*/
-	my_addr.sin_port = htons(PORT+i);	/*convierte el entero formato PC a entero formato network*/
-	my_addr.sin_addr.s_addr = INADDR_ANY;	/* automaticamente usa la IP local */
-	bzero(&(my_addr.sin_zero), 8);		/* rellena con ceros el resto de la estructura */
-printf("bindeando socket en %d\n",(PORT+i));
-/* Con la estructura sockaddr_in completa, se declara en el Sistema que este proceso escuchará pedidos por la IP y el port definidos*/
-	if ( (bind (sockfd, (struct sockaddr *) &my_addr, sizeof(struct sockaddr))) == -1)
-	{
-		perror("Error en función bind. Código de error %s\n");
-		exit(ERROR);
-	}
-printf("escuchando socket en %d\n",(PORT+i));
-/* Habilitamos el socket para recibir conexiones, con una cola de conexiones en espera que tendrá como máximo el tamaño especificado en BACKLOG*/
-	if (listen (sockfd, BACKLOG) == -1)
-	{
-		perror("Error en función listen. Código de error %s\n");
-		exit(ERROR);
-        }
-printf("aceptando socket en %d\n",(PORT+i));
-/*Se espera por conexiones ,*/
-	if ((newsock = accept(sockfd, (struct sockaddr *)&my_addr, &sin_size)) == -1)
-	{
-		fprintf(stderr, "Error en función accept. Código de error %s\n", strerror(newsock));
-		exit(ERROR);
-	}
 
 	data = shmat(shmid, (void *)0, 0);  // atacho shared memory
 	if (data == (float *)(-1)) 
@@ -317,7 +287,6 @@ printf("aceptando socket en %d\n",(PORT+i));
     exit(1);
   }
 	
-printf("escribiendo socket en %d\n",(PORT+i));
 	while(1)
 	{
 
@@ -339,7 +308,7 @@ printf("escribiendo socket en %d\n",(PORT+i));
   
 	printf("escribiendo en %d, temperatura = %f\n", (PORT+i), temp);
 
-	  if (send (newsock, &temp, sizeof (temp), MSG_DONTWAIT) == -1)
+	  if (send (sock, &temp, sizeof (temp), MSG_DONTWAIT) == -1)
 	  {
 		      if((errno == EAGAIN) || (errno == EWOULDBLOCK))
 		      {
@@ -349,8 +318,7 @@ printf("escribiendo socket en %d\n",(PORT+i));
 		    else
 		    {
 			printf("Conexion cerrada en puerto %d\n",(PORT+i));
-			close(newsock);
-			close(sockfd);
+			close(sock);
 			if (shmdt(data) == -1) 
 				{
 					perror("shmdt");
@@ -370,16 +338,15 @@ printf("escribiendo socket en %d\n",(PORT+i));
 					perror("shmdt");
 					exit(1);
 				}
-	close(newsock);
-	close(sockfd);
+	close(sock);
 	  
   exit(0);
 }
 
-/* ******************************************************************************************************************************************* */
+/* ****************************************************************************************************************************** */
 /*  Proceso padre. Espera por nuevos pedidos de conexion. cuando lo tiene. */
 
-int aceptar_pedidos(int sockfd, int i)
+int aceptar_pedidos(int sockfd, int cant_conex)
 {
   int puerto, newsock; 	/* Por este socket duplicado del inicial se transaccionará*/
   struct sockaddr_in their_addr;  /* Contendra la direccion IP y número de puerto del cliente */
@@ -390,7 +357,8 @@ int aceptar_pedidos(int sockfd, int i)
 	{
 		if(errno == EINTR)
 		{
-		  i--;
+		  cant_conex--;
+		  newsock = 0;
 		}
 	else
 		{
@@ -402,21 +370,13 @@ int aceptar_pedidos(int sockfd, int i)
 	else
 	{
 	printf  ("server:  conexión desde:  %s\n", inet_ntoa(their_addr.sin_addr));
-	/* mando el pueto por el que debe escuchar el cliente */
-		puerto = (PORT+i);
-		printf("puerto asignado: %d\n", puerto);
-		if (write (newsock, &puerto, sizeof (puerto)) == -1)
-		    {
-			perror("Error escribiendo mensaje en socket");
-			exit (ERROR);
-		    }
 	}
 
-  return(i);
+  return(newsock);
 
 }
 
-/* ******************************************************************************************************************************************* */
+/* ****************************************************************************************************************************** */
 /* Manejo de señales */
 
 void mi_sigchld(int c, siginfo_t * a, void * b)		// handler de señal sigchld.
@@ -424,6 +384,7 @@ void mi_sigchld(int c, siginfo_t * a, void * b)		// handler de señal sigchld.
   int status;
   
 waitpid(-1,&status,WNOHANG|WUNTRACED);
+cant_conex--;
 
   return;
 }

@@ -404,7 +404,7 @@ ssize_t i2c_read (struct file * archivo, char __user * data_user, size_t cantida
 	/*pongo a dormir hasta que temine la rx*/
 	if((aux = wait_event_interruptible (td3_i2c_rx_q, cond_wake_up_rx > 0 )))
 	{
-		printk(KERN_ALERT "td3_i2c: Error en wait de rx");
+		printk(KERN_ALERT "td3_i2c: Error en wait de rx %d", aux);
 		return aux;
 	}
 	printk(KERN_ALERT "td3_i2c: mando stop");
