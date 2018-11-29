@@ -2,7 +2,7 @@ obj-m+=i2c.o
 KERNEL_DIR = /home/juan/Escritorio/kernel-bbb/kernel_beagle
 
 
-"all:
+all:
 		make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- -C $(KERNEL_DIR) M=$(PWD) modules
 		#arm-linux-gnueabihf-gcc prueba_dev.c -o test -Wall
 		#arm-linux-gnueabihf-gcc server.c -o server -Wall

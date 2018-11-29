@@ -22,45 +22,51 @@
 #include <sys/sem.h>
 
 #define ERROR	-1
-#define PORT 8000		/* El puerto donde se conectar√°, servidor */
-#define BACKLOG 2	/* Tama√±o de la cola de conexiones recibidas */
-#define MEM_SIZE 40
+#define PORT 8000		/* El puerto donde se conectar·, servidor */
+#define BACKLOG 2		/* TamaÒo de la cola de conexiones recibidas */
+#define PEDIDO_DATO 0xa5a5a5a5
 
 
 /* ****************************************************************************************************************************** */
 
 void mi_sigchld(int, siginfo_t *, void *);
-void child(int);
+void leer_temp(void);
+void child(int, int);
 int aceptar_pedidos(int, int);		//este es la rutina del padre, aceptar pedidos y a los hijo le manda el socket conectado.
 
-/*int fdi2c;
+int fdi2c;
 char dato_rx[2];
 char pointer=0;
-float temp;*/
+float temp, temp_aux;
 
 key_t keyshm, keysem;
 int shmid, semid, cant_conex = 0;
 struct sembuf sb = {0, -1, SEM_UNDO}; 
+pid_t pid_read;
 
-	union semun {
-	int	val;					/* valor para SETVAL */
-	struct	semid_ds *buf;		/* buffer para IPC_STAT e IPC_SET */
-	unsigned short int *array;	/* valor para GETALL y SETALL */
-	struct seminfo *__buf;		/* buffer para IPC_INFO */
-	}arg;
+union semun {
+    int	val;                     /* valor para SETVAL */
+    struct	semid_ds *buf;       /* buffer para IPC_STAT e IPC_SET */
+    unsigned short int *array;  /* valor para GETALL y SETALL */
+    struct seminfo *__buf;      /* buffer para IPC_INFO */
+    }arg;
+    
+    struct paquete {
+	  float temperatura;
+	  time_t tiempo;
+  }	* dato;;
 
 int main ()
 {
   pid_t pid;
-  int i = 1, j, k, aux;
   struct sigaction ctrl_nuevo;
-  int sockfd;			 /* File Descriptor del socket por el que el servidor "escuchar√°" conexiones*/
-  struct sockaddr_in my_addr;	/* contendr√° la direcci√≥n IP y el n√∫mero de puerto local */
+  int sockfd, sock_child;			 /* File Descriptor del socket por el que el servidor "escuchar·" conexiones*/
+  struct sockaddr_in my_addr;	/* contendr· la direcciÛn IP y el n˙mero de puerto local */
 
-  int fdi2c;
+  /*int fdi2c;
   char dato_rx[2];
   char pointer=0;
-  float *temp, temp_aux;
+  float temp_aux;*/
     
     if(sigemptyset(&ctrl_nuevo.sa_mask) == ERROR)		// Empiezo a setear la struct que usa el sigaction
    {
@@ -81,13 +87,69 @@ int main ()
       exit(ERROR);
    };
 
-/* **********************************************************************************************************************************
- * preparo para recivir conexiones.
- * ****************************************************************************************************************************** */
-/*Crea un socket y verifica si hubo alg√∫n error*/
+
+
+/* ************************************************************************** */
+/* Shared memory: */
+
+  if ((keyshm = ftok("server.c", 'R')) == -1) 
+  {
+     perror("ftok");
+     exit(ERROR);
+  }
+
+  if ((shmid = shmget(keyshm, sizeof(struct paquete), 0666 | IPC_CREAT)) == -1) 
+  {
+      perror("shmget");
+      exit(ERROR);
+   }
+   
+           dato = shmat(shmid, (void *)0, 0);	 //tomo la shared memory
+		    if (dato == (struct paquete *)(-1)) 
+				{
+				perror("shmat");
+				exit(1);
+				}
+
+/* ******************************************************************************************** */
+/* Inicio sem·foro: */
+
+if ((keysem = ftok("server.c", 'J')) == -1) {
+            perror("ftok");
+            exit(1);
+        }
+
+        /* crea el sem·foro y lo setea en 1 */
+        if ((semid = semget(keysem, 1, 0666 | IPC_CREAT)) == -1) {
+            perror("semget");
+            exit(1);
+        }
+
+        /* inicializa el sem·foro #0 a 1: */
+        arg.val = 1;
+        if (semctl(semid, 0, SETVAL, arg) == -1) {
+            perror("semctl");
+            exit(1);
+        }
+
+
+pid_read = fork();
+if (pid_read == -1)
+{
+  perror("fork");
+  exit(ERROR);
+}
+
+if (!pid_read)
+	leer_temp();
+
+/* ***********************************************************************************
+ * Preparo para recibir conexiones.
+ * ******************************************************************************** */
+/*Crea un socket y verifica si hubo algun error*/
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1) 
 	{
-	fprintf(stderr, "Error en funci√≥n socket. C√≥digo de error %s\n", strerror(sockfd));
+	fprintf(stderr, "Error en funciÛn socket. CÛdigo de error %s\n", strerror(sockfd));
 	exit(ERROR);
 	}
 	
@@ -98,78 +160,62 @@ int main ()
 	my_addr.sin_addr.s_addr = INADDR_ANY;	/* automaticamente usa la IP local */
 	bzero(&(my_addr.sin_zero), 8);		/* rellena con ceros el resto de la estructura */
 
-/* Con la estructura sockaddr_in completa, se declara en el Sistema que este proceso escuchar√° pedidos por la IP y el port definidos*/
+/* Con la estructura sockaddr_in completa, se declara en el Sistema que este proceso escuchar· pedidos por la IP y el port definidos*/
 	if ( (bind (sockfd, (struct sockaddr *) &my_addr, sizeof(struct sockaddr))) == -1)
 	{
 		perror("Error en funci√≥n bind. C√≥digo de error %s\n");
 		exit(ERROR);
 	}
 
-/* Habilitamos el socket para recibir conexiones, con una cola de conexiones en espera que tendr√° como m√°ximo el tama√±o especificado en BACKLOG*/
+/* Habilitamos el socket para recibir conexiones, con una cola de conexiones en espera que tendrÌa como m·ximo el tamaÒo especificado en BACKLOG*/
 	if (listen (sockfd, BACKLOG) == -1)
 	{
 		perror("Error en funci√≥n listen. C√≥digo de error %s\n");
 		exit(ERROR);
-        }
-
-/* ****************************************************************************************************************************** */
-/* Shared memory: */
-
-  if ((keyshm = ftok("server.c", 'R')) == -1) 
-  {
-     perror("ftok");
-     exit(ERROR);
-  }
-
-  if ((shmid = shmget(keyshm, 5*sizeof(float), 0666 | IPC_CREAT)) == -1) 
-  {
-      perror("shmget");
-      exit(ERROR);
-   }
-   
-           temp = shmat(shmid, (void *)0, 0); //tomo la shared memory
-		    if (temp == (float *)(-1)) 
-				{
-				perror("shmat");
-				exit(1);
-				}
-
-/* ****************************************************************************************************************************** */
-/* Inicio sem√°foro: */
-
-if ((keysem = ftok("server.c", 'J')) == -1) {
-            perror("ftok");
+	}
+        
+/* *********************************************************** */
+/*Bucle principal */
+  do{
+	  if(cant_conex >= 1000)
+	  {
+		  printf("M·ximo de conexiones alcanzado\n");
+		  sleep(1);
+		  sock_child = 0;
+	  }
+	  else
+		  sock_child=aceptar_pedidos(sockfd, cant_conex);
+	  
+    if(sock_child!=0)
+    {
+        cant_conex++;
+        pid = fork();
+        if (pid == -1)
+        {
+            perror("fork");
             exit(1);
         }
+        else if (!pid)						// Si es el hijo
+			child(sock_child, cant_conex);
+    }
 
-        /* crea el sem√°foro y lo setea en 1 */
-        if ((semid = semget(keysem, 1, 0666 | IPC_CREAT)) == -1) {
-            perror("semget");
-            exit(1);
-        }
+  }while(1);
+      
+  return(0);
+}
 
-        /* inicializa el sem√°foro #0 a 1: */
-        arg.val = 1;
-        if (semctl(semid, 0, SETVAL, arg) == -1) {
-            perror("semctl");
-            exit(1);
-        }
 
 
 /* ****************************************************************************************************************************** */
 /* Proceso para leer la temperatura: */
-
-pid = fork();
-if (pid == -1)
+void leer_temp(void)
 {
-  perror("fork");
-  exit(ERROR);
-}
-
-if (!pid)
-{
+	  int aux;
+	  pid_t pid_padre;
+	  time_t tiempo_aux;
+	  
 	printf("Abriendo dispositivo...\n");
-   fdi2c = open("/dev/td3_i2c", O_RDWR);
+    fdi2c = open("/dev/td3_i2c", O_RDWR);
         if(fdi2c < 0)
 		  {
             printf("Error al abrir dispositivo\n");
@@ -181,14 +227,14 @@ if (!pid)
         aux = write(fdi2c, &pointer, sizeof(pointer));
         if(aux<=0){
             printf("Error al escribir en el dispositivo");
-            return -1;
+            exit(ERROR);
         }
         printf("Exito al escribir el pointer register\n"); 
         
-        
-    while(1)
+	pid_padre = getppid();
+    while(getppid() == pid_padre)
 	 {
-        usleep(100000);        
+        usleep(500000);        
         /* Intento leer 2 bytes de temperatura */
         aux = read(fdi2c, dato_rx, 2);
     
@@ -199,41 +245,42 @@ if (!pid)
         }
 
         temp_aux = (float)((dato_rx[0]<<3)+(dato_rx[1]>>5));
-		  temp_aux = temp_aux*0.125; 
+        temp_aux = temp_aux*0.125; 
+		time(&tiempo_aux);
 
-    if (semop(semid, &sb, 1) == -1) 
-  {
-    perror("semop");
-    exit(1);
-  }
-  
-		  for(k=0;k<4;k++)	*(temp+k) = *(temp+k+1);
-		  *(temp+4) = temp_aux;
+        if (semop(semid, &sb, 1) == -1) 
+        {
+            perror("semop");
+            exit(1);
+        }
+    
 
-  sb.sem_op = 1; /* Suelta el sem√°foro */
-  if (semop(semid, &sb, 1) == -1) 
-  {
-    perror("semop");
-    exit(1);
-  }
+        dato->temperatura = temp_aux;
+        dato->tiempo = tiempo_aux;
+
+        sb.sem_op = 1; /* Suelta el sem·foro */
+        if (semop(semid, &sb, 1) == -1) 
+        {
+            perror("semop");
+            exit(1);
+        }
        
-		  printf("proceso de lectura: temperatura = %f\n", temp_aux);
-
-        
+		  /*printf("proceso de lectura: temperatura = %f\n", temp_aux);*/
+          
 	 }
 
-
-  if (semctl(semid, 0, IPC_RMID, arg) == -1) 
-  {
-    perror("semctl");
-    exit(1);
-  }
+	printf("%d \n", getppid());
+	if (semctl(semid, 0, IPC_RMID, arg) == -1) 
+	{
+		perror("semctl");
+		exit(1);
+	}
   
-    if (shmdt(temp) == -1) 
-		{
-			perror("shmdt");
-			exit(ERROR);
-		}
+    if (shmdt(dato) == -1) 
+	{
+		perror("shmdt");
+		exit(ERROR);
+	}
 		
         close(fdi2c);
         printf("Se cerro el dispositivo correctamete\n");
@@ -243,83 +290,121 @@ if (!pid)
 }
 
 /* ****************************************************************************************************************************** */
-  do{
-	  if(cant_conex >= 1000)
-	  {
-		  printf("M√°ximo de conexiones alcanzado\n");
-		  if(wait_event_interruptible(queue, cant_conex < 1000))
-		  {
-			  printf("Error en wait_event_interruptible\n");
-			  exit(ERROR);
-		  }
-	  }
-	  
-    sock_child=aceptar_pedidos(sockfd, cant_conex);
-    if(sock_child!=0)
-    {
-    pid = fork();
-    if (pid == -1)
-    {
-      perror("fork");
-      exit(1);
-    }
-    else if (!pid)						// Si es el hijo
-      child(sock_child);
-    }
-    else	cant_conex++;
-  }while(1);
-      
-  return(0);
-}
+/*  Proceso hijo para atender clientes */
 
-/* ****************************************************************************************************************************** */
-/*  Proceso hijo para atender clientes: manda mensajes cada 1 segundos */
-
-void child(int sock)					
+void child(int sock, int proceso)					
 {
   int x=0;
-  float *data, temp;
+  struct paquete * dato, dato_aux;
+  struct envio{
+	  float temp;
+	  int hora;
+	  int min;
+	  int seg;
+  } _forsend;
+  int numbytes, mensaje = 0;
+  struct tm * stamp_s;
+  pid_t pid_papa;
 
-	data = shmat(shmid, (void *)0, 0);  // atacho shared memory
-	if (data == (float *)(-1)) 
-  {
-    perror("shmat");
-    exit(1);
-  }
-	
-	while(1)
-	{
-
+	dato = shmat(shmid, (void *)0, 0);  // atacho shared memory
+	if (dato == (struct paquete *)(-1)) 
+    {
+        perror("shmat");
+        exit(1);
+    }
+pid_papa = getppid();
+while(pid_papa == getppid())
+{
+        /* espero el pedido del dato*/
+        while(mensaje != PEDIDO_DATO)
+        {
+			if ((numbytes = recv (sock, &mensaje, sizeof(mensaje), MSG_DONTWAIT)) == -1)
+            {
+                if((errno == EAGAIN) || (errno == EWOULDBLOCK))
+                {
+                    x++;
+                    if(x == 30)
+                    {
+                        fprintf(stderr, "No se recibiÛ nada por 60 segundos, ERROR DE CONEXI”N. Proceso %d\n", proceso);
+                        if (shmdt(dato) == -1) 
+                        {
+                            perror("shmdt");
+                            exit(ERROR);
+                        }
+                        close (sock);
+                        exit(ERROR);
+                    }
+                    sleep(1);
+                }
+                else
+                {
+                    perror("Error de lectura en el socket");
+                    if (shmdt(dato) == -1) 
+                        {
+                            perror("shmdt");
+                            exit(ERROR);
+                        }
+                    close(sock);
+                    exit(ERROR);
+                }
+            }
+            else
+                x =  0;
+        }
+        mensaje = 0;
+        
+	      
+	/* entro a la shared para buscar el dato*/
 	if (semop(semid, &sb, 1) == -1) 
-  {
-    perror("semop");
-    exit(1);
-  }
+    {
+        perror("semop 1");
+        exit(1);
+    }
   
-    temp = *(data+1);
+    dato_aux = *dato;
 
   
-    sb.sem_op = 1; /* Suelta el sem√°foro */
-  if (semop(semid, &sb, 1) == -1) 
-  {
-    perror("semop");
-    exit(1);
-  }
+    sb.sem_op = 1;      /* Suelta el sem·foro */
+    if (semop(semid, &sb, 1) == -1) 
+    {
+        perror("semop 2");
+        exit(1);
+    }
   
-	printf("escribiendo en %d, temperatura = %f\n", (PORT+i), temp);
+/* envio el dato */
+printf("Proceso %d enviando...\n", proceso);
+stamp_s = gmtime(&dato_aux.tiempo);
+_forsend.hora = stamp_s->tm_hour;
+_forsend.min = stamp_s->tm_min;
+_forsend.seg = stamp_s->tm_sec;
+_forsend.temp = dato_aux.temperatura;
+printf("%f\n",_forsend.temp);
+printf("[%d : %d : %d]\n", _forsend.hora, _forsend.min, _forsend.seg); 
 
-	  if (send (sock, &temp, sizeof (temp), MSG_DONTWAIT) == -1)
+do{
+	  if (send (sock, &_forsend, sizeof(_forsend), MSG_DONTWAIT) == -1)
 	  {
-		      if((errno == EAGAIN) || (errno == EWOULDBLOCK))
-		      {
-					x++;
-					sleep(1);
-		      }
+            if((errno == EAGAIN) || (errno == EWOULDBLOCK))
+		    {
+                x++;
+                if(x == 60)
+                {
+                    printf("No se pudo enviar el dato, proceso: %d\n", proceso);
+                    close(sock);
+                    if (shmdt(dato) == -1) 
+                    {
+                        perror("shmdt");
+                        exit(1);
+                    }
+                    exit (ERROR);
+                }
+                sleep(1);
+            }
 		    else
 		    {
-			printf("Conexion cerrada en puerto %d\n",(PORT+i));
+			printf("ConexiÛn cerrada en el proceso: %d\n", proceso);
 			close(sock);
-			if (shmdt(data) == -1) 
+			if (shmdt(dato) == -1) 
 				{
 					perror("shmdt");
 					exit(1);
@@ -328,16 +413,20 @@ void child(int sock)
 		    }
 	  }
 	  else
-	  {
-		 x = 0;
-	    sleep(1);
-	  }
-	}
-			 if (shmdt(data) == -1) 
-				{
-					perror("shmdt");
-					exit(1);
-				}
+          x = 0;
+      
+}while(x != 0);
+//printf("%d\n",(int)envio.tiempo);
+//send (sock, &(dato_aux.tiempo), sizeof (time_t), MSG_DONTWAIT);
+      
+}
+/*termino el while 1*/
+    if (shmdt(dato) == -1) 
+    {
+        perror("shmdt");
+        exit(1);
+    }
+    printf("cierro Socket hijo\n");
 	close(sock);
 	  
   exit(0);
@@ -348,7 +437,7 @@ void child(int sock)
 
 int aceptar_pedidos(int sockfd, int cant_conex)
 {
-  int puerto, newsock; 	/* Por este socket duplicado del inicial se transaccionar√°*/
+  int newsock; 	/* Por este socket duplicado del inicial se transaccionar·*/
   struct sockaddr_in their_addr;  /* Contendra la direccion IP y n√∫mero de puerto del cliente */
   unsigned int sin_size = sizeof(struct sockaddr_in);
 
@@ -362,14 +451,16 @@ int aceptar_pedidos(int sockfd, int cant_conex)
 		}
 	else
 		{
-		  fprintf(stderr, "Error en funci√≥n accept. C√≥digo de error %s\n", strerror(newsock));
+		  fprintf(stderr, "Error en funciÛn accept. CÛdigo de error %s\n", strerror(newsock));
+		  close(sockfd);
+		  close(newsock);
 		  exit(ERROR);
 		}
 		
 	}
 	else
 	{
-	printf  ("server:  conexi√≥n desde:  %s\n", inet_ntoa(their_addr.sin_addr));
+	printf  ("server:  conexiÛn desde:  %s\n", inet_ntoa(their_addr.sin_addr));
 	}
 
   return(newsock);
@@ -377,14 +468,28 @@ int aceptar_pedidos(int sockfd, int cant_conex)
 }
 
 /* ****************************************************************************************************************************** */
-/* Manejo de se√±ales */
+/* Manejo de seÒales */
 
-void mi_sigchld(int c, siginfo_t * a, void * b)		// handler de se√±al sigchld.
+void mi_sigchld(int c, siginfo_t * a, void * b)		// handler de seÒal sigchld.
 {
   int status;
+  pid_t pid_dead;
   
-waitpid(-1,&status,WNOHANG|WUNTRACED);
-cant_conex--;
+pid_dead = waitpid(-1,&status,WNOHANG|WUNTRACED);
+if (pid_dead == pid_read)
+{
+	printf("Relanzo hijo para leer temperatura\n");
+		pid_read = fork();
+		if (pid_read == -1)
+		{
+			perror("fork");
+            exit(1);
+		}
+		else if (!pid_read)
+			leer_temp();
+}
+else
+	cant_conex--;
 
   return;
 }
