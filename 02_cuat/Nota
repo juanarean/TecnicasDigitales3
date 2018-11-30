@@ -1,0 +1,5 @@
+No pude crosscompilar el programa server (el driver si lo puedo crosscompilar con el Makefile adjunto).
+Para compilar server.c -> En la beagle: gcc server.c -o server -Wall
+
+Para compilar clientes.c -> En la PC: gcc clientes.c -o clientes -Wall
+
