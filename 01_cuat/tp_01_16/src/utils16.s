@@ -1,9 +1,12 @@
+
 GLOBAL PIC_Config
 GLOBAL PIT_Set_10mseg
 GLOBAL RTC_Service
 GLOBAL A20_Enable
 
 SECTION .kernel16
+%include "./inc/init_pci.inc"
+
 ;-------------------------------------------------------------------------------
 ;|  Título:         Reprogramar PICS                                           |
 ;|  Versión:        1.0                     Fecha:  15/02/2010                 |
@@ -24,6 +27,7 @@ SECTION .kernel16
 ;|      1.0 | 15/02/2010 | D.GARCIA | Original                                 |
 ;-------------------------------------------------------------------------------
 USE16
+
 PIC_Config:                     ; Inicializo PIC 1
     mov     al, 11h             ; ICW1: IRQs activas x flanco, cascada, e ICW4
     out     20h, al  

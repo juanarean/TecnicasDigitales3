@@ -34,6 +34,7 @@ SECTION .ISR_HANDLERS
 
 GLOBAL HANDLER_IRQ_GEN
 GLOBAL HANDLER_IRQ_00
+GLOBAL HANDLER_IRQ_03
 GLOBAL HANDLER_IRQ_06
 GLOBAL HANDLER_IRQ_07
 GLOBAL HANDLER_IRQ_08
@@ -98,8 +99,19 @@ HANDLER_IRQ_GEN:
 HANDLER_IRQ_00:		    
 
 			xchg bx,bx
-			mov dx,0x00
+			mov dx,1
 		    iret
+		    
+;--------------------------------------------------------------------
+
+HANDLER_IRQ_03:		    
+
+    xchg bx,bx
+    mov eax,0
+    mov edx,0
+    div eax
+    iret
+    
 ;--------------------------------------------------------------------
 
 HANDLER_IRQ_06:		    
@@ -111,7 +123,7 @@ HANDLER_IRQ_06:
 ;--------------------------------------------------------------------
 ; Handler que guarda los mmx cuando se intenta ejecutar una instruccion SIMD con cr0.ts=0.
 HANDLER_IRQ_07:		    
-
+;xchg bx,bx
     push eax
     push ebx
     push ecx
@@ -149,13 +161,20 @@ HANDLER_IRQ_08:
 HANDLER_IRQ_13:		    
 
 			xchg bx,bx
-			mov dx,0x13
+			mov esp,0x8
 		    iret
 ;--------------------------------------------------------------------
 ; Handler de page fault, genera una nueva pagina mirando en CR2 que se quiso acceder.
 HANDLER_IRQ_14:
 xchg bx,bx
     push eax
+    push ebp
+    mov ebp,esp
+    
+    mov eax,[ebp+8]
+    and eax,0x18
+    cmp eax,0
+    jne problemon
     
     mov eax,[_cant_tablas_pag]
     push eax            ;push cantdad de entradas al directorio de paginas.
@@ -176,10 +195,15 @@ xchg bx,bx
     inc eax
     mov [_pag_nuevas],eax
     
+    pop ebp
     pop eax
     
     add esp,4   ;saco el error code
     iret
+
+problemon:
+    hlt ;es una page fault que no puedo resolver. no es por pagina ausente.
+
 ;--------------------------------------------------------------------
 ; SCHEDULER
 HANDLER_TTICK:
@@ -621,9 +645,22 @@ _comp_0:
       jne _comp_Enter
       mov al, 0x00
       je _grabar_tecla
+
 _comp_Enter:
       cmp al, 0x1c          ; tecla ENTER
       je _grabar_vector
+      
+      cmp al,0x15   ; código de la 'Y'
+      je _DE
+      cmp al,0x16   ; código de la 'U'
+      je _UD
+      cmp al,0x17   ; código de la 'I'
+      je _DF
+      cmp al,0x18   ; código de la 'O'
+      je _GP
+      cmp al,0x19   ; código de la 'P'
+      je _PF
+
       xor eax,eax
       mov [tecla], al
       jmp __salida_hand_teclado
@@ -669,6 +706,37 @@ __salida_hand_teclado:
    out 20h,al
 ;-------------------------------------------
    iretd
+
+;------------------------------------------------------------------------
+; Generacion de excepsiones
+  _DE:
+  xchg bx,bx
+  mov eax,0
+  mov edx,0
+  div eax
+  jmp __salida_hand_teclado
+  
+  _UD:
+  xchg bx,bx
+  db 0x0f
+  db 0x27
+  jmp __salida_hand_teclado
+  
+  _DF:
+  xchg bx,bx
+  INT 3
+  jmp __salida_hand_teclado
+  
+  _GP:
+  xchg bx,bx
+  mov esp,4
+  push eax
+  jmp __salida_hand_teclado
+  
+  _PF:
+  xchg bx,bx
+  mov eax,0x2000
+  jmp __salida_hand_teclado
 
 ;------------------------------------------------------------------------
 ; SYSCALL de lectura de vector de teclas

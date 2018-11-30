@@ -35,6 +35,7 @@ GLOBAL _mmxt3
 GLOBAL _mmxt4
 EXTERN __HANDLER_HIGH
 EXTERN HANDLER_IRQ_00
+EXTERN HANDLER_IRQ_03
 EXTERN HANDLER_IRQ_06
 EXTERN HANDLER_IRQ_07
 EXTERN HANDLER_IRQ_08
@@ -285,7 +286,7 @@ IDT:
 ;---------------------------------------------------------------
 
 	_03: equ $-IDT
-		dw	HANDLER_IRQ_GEN
+		dw	HANDLER_IRQ_03
 		dw	CODE_SEL
 		db	0
 		db	10001111b		; FAULT/TRAP

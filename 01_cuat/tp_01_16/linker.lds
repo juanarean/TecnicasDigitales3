@@ -43,7 +43,7 @@ SECTIONS
    ___kernel_lma_st =  LOADADDR(.codigo_kernel32);  
    ___kernel_size = SIZEOF(.codigo_kernel32);
  
-   __tabla_digitos = 0x00510000;
+   __tabla_digitos = 0x00511000;
    ___td_vma_st = __tabla_digitos;
    .td __tabla_digitos : { *(.tabla_digitos*); } > ram 
    __digitos_lma = LOADADDR(.td);
@@ -133,9 +133,9 @@ SECTIONS
    ___datos_tarea4_vma = __datos_tarea4;
    .bata_t4 __datos_tarea4 : { *(.tarea4_datos*); } > ram
  
-   __codigo_ini32 = 0xfffff000;
+   __codigo_ini32 = 0xffffd100;
    .codigo_init32 __codigo_ini32 :
-      AT ( 0xfffff000 )   
+      AT ( 0xffffd100 )   
       { *(.init32); } > rom32
     ___codigo_ini32_size = SIZEOF(.codigo_init32);
       

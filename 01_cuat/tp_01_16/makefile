@@ -1,7 +1,7 @@
 all:
 	$ mkdir -p sup
 	nasm -f elf32 ./src/resetvec.s -o ./sup/resetvec.elf
-	nasm -f elf32 ./src/init.s -o ./sup/init.elf
+	nasm -f elf32 ./src/init.s -o ./sup/init.elf -l ./sup/init.lst
 	nasm -f elf32 ./src/main.s -o ./sup/main.elf
 	nasm -f elf32 ./src/sys_tables.s -o ./sup/sys_tables.elf
 	nasm -f elf32 ./src/uninitdata.s -o ./sup/uninitdata.elf
@@ -17,6 +17,9 @@ all:
 
 
 	ld -z max-page-size=0x01000 -T linker.lds --oformat=binary -m elf_i386 -e start16  ./sup/resetvec.elf ./sup/init.elf ./sup/main.elf ./sup/sys_tables.elf ./sup/uninitdata.elf ./sup/tabla_digitos.elf ./sup/utils16.elf ./sup/handlers.elf ./sup/tarea0.elf ./sup/tarea1.elf ./sup/tarea2.elf ./sup/tarea3.elf ./sup/tarea4.elf ./sup/utils32.elf -o ./bin/bios.bin -Map ./sup/mibios.map
+	
+bochs:
+	bochs -f ./bin/bochsrc -q
 
 .PHONY: clean
 

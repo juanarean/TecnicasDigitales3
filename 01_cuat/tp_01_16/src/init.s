@@ -1,6 +1,7 @@
+SECTION .kernel16
 %include "./inc/processor-flags.h"
 
-SECTION .kernel16
+
 GLOBAL start16
 EXTERN __STACK_START_16
 EXTERN __STACK_END_16
@@ -10,6 +11,7 @@ EXTERN DATA_SEL
 EXTERN A20_Enable
 EXTERN PIC_Config
 EXTERN PIT_Set_10mseg
+EXTERN bios_init
 
 USE16
 start16:
@@ -29,7 +31,9 @@ start16:
     mov bh,0x28     ;PIC #1
     call PIC_Config
     call PIT_Set_10mseg
-    
+    ;xchg bx,bx
+    call bios_init
+    ;xchg bx,bx
     o32 lgdt [cs:GDTR16]             ;Cargo la GDT
     
 ; Establecer el up en Modo protegido:
@@ -345,6 +349,17 @@ kernel32_init:
     push eax
     call __paginacion
     add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
+    
+    push eax            ;push cantdad de entradas al directorio de paginas.
+    mov eax, ATTR_SUP
+    push eax            ;atributos
+    mov eax, __PDPT
+    push eax
+    mov eax,0x000b8000  ;pantalla
+    push eax
+    push eax
+    call __paginacion
+    add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
 
     mov [_cant_tablas_pag], eax ; guardo la cantidad de entradas en el directorio de paginas.
 
@@ -460,7 +475,7 @@ kernel32_init:
     add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
 
     push eax            ;push cantdad de entradas al directorio de paginas.
-    mov eax, ATTR_SUP
+    mov eax, ATTR_USU
     push eax            ;atributos
     mov eax, [__PDPT0]
     push eax
@@ -591,6 +606,17 @@ kernel32_init:
     push eax
     call __paginacion
     add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
+    
+    push eax            ;push cantdad de entradas al directorio de paginas.
+    mov eax, ATTR_USU
+    push eax            ;atributos
+    mov eax, [__PDPT1]
+    push eax
+    mov eax,0x000b8000  ;pantalla
+    push eax
+    push eax
+    call __paginacion
+    add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
    
 ;----------------------------------------------------------------
 ;Arbol de directorios para la tarea 2
@@ -709,6 +735,17 @@ kernel32_init:
     mov eax, [__PDPT2]
     push eax
     mov eax,__datos_no_iniciali_inicio  ;pagina datos no inic
+    push eax
+    push eax
+    call __paginacion
+    add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
+    
+    push eax            ;push cantdad de entradas al directorio de paginas.
+    mov eax, ATTR_USU
+    push eax            ;atributos
+    mov eax, [__PDPT2]
+    push eax
+    mov eax,0x000b8000  ;pantalla
     push eax
     push eax
     call __paginacion
@@ -835,6 +872,17 @@ kernel32_init:
     push eax
     call __paginacion
     add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
+    
+    push eax            ;push cantdad de entradas al directorio de paginas.
+    mov eax, ATTR_USU
+    push eax            ;atributos
+    mov eax, [__PDPT3]
+    push eax
+    mov eax,0x000b8000  ;pantalla
+    push eax
+    push eax
+    call __paginacion
+    add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
 
     ;----------------------------------------------------------------
 ;Arbol de directorios para la tarea 4
@@ -953,6 +1001,17 @@ kernel32_init:
     mov eax, [__PDPT4]
     push eax
     mov eax,__datos_no_iniciali_inicio  ;pagina datos no inic
+    push eax
+    push eax
+    call __paginacion
+    add esp,4*4         ;restablesco el puntero de pila porque el c no lo hace
+    
+    push eax            ;push cantdad de entradas al directorio de paginas.
+    mov eax, ATTR_USU
+    push eax            ;atributos
+    mov eax, [__PDPT4]
+    push eax
+    mov eax,0x000b8000  ;pantalla
     push eax
     push eax
     call __paginacion

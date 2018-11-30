@@ -20,6 +20,7 @@ EXTERN _tiempo_t1
 EXTERN _tiempo_t2
 EXTERN _tiempo_t3
 EXTERN _tiempo_t4
+EXTERN __print_inicio
 
 %define CR4_MASK 0x00000600
 %define TIEMPOT1 0x0000000a
@@ -53,8 +54,7 @@ xor ecx,ecx
 xor edx,edx
 
 mov [digitos],eax       ;seteo en 0 las variables que voy a utilizar.
-mov [_cantidad],eax
-;mov [_pag_nuevas],eax
+mov [_cantidad],eax		;mov [_pag_nuevas],eax
 
 mov dword [_tiempo_t1],TIEMPOT1     ;Seteo los tiempos en que se ejecuta cada tarea.
 mov dword [_tiempo_t2],TIEMPOT2
@@ -66,8 +66,12 @@ ltr ax           ;Para poder hacer cambios de tarea tengo que poner cualquier se
 
 xor eax,eax
 
-sti     ; habilito interrupciones.
+;xchg bx,bx
+mov eax,0x0000b8002
+mov byte [eax], 0x1e
+call __print_inicio
 
+sti     ; habilito interrupciones.
 _bucle_main:
 
 hlt         ; quedo aca hasta que salta la primera interrupcion del timer.

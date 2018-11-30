@@ -23,7 +23,7 @@ __attribute__(( section(".init32"))) byte __fast_memcpy(const dword *src, dword 
    return(status);
 }
 
-__attribute__(( section("init32"))) byte __paginacion(dword lineal, dword fisica, dword base, dword atributos, dword cant)
+__attribute__(( section(".init32"))) byte __paginacion(dword lineal, dword fisica, dword base, dword atributos, dword cant)
 {
     byte status = ERROR_DEFECTO;
   
@@ -48,7 +48,7 @@ __attribute__(( section("init32"))) byte __paginacion(dword lineal, dword fisica
     return(status);
 }
 
-/*__attribute__(( section(".ISR_HANDLERS"))) dword td3_read(void * buffer, dword num_bytes)
+/*__attribute__(( section(".ISR_HANDLERS"))) dword __printf(dword atributos, dword caracteres)
 {
     dword i;
     dword j;
@@ -78,3 +78,18 @@ __attribute__(( section("init32"))) byte __paginacion(dword lineal, dword fisica
     return(k);
 }
 */
+
+__attribute__(( section(".kernel32"))) byte __print_inicio(void)
+{
+	unsigned char * pv = (unsigned char *)0xb8000;
+	unsigned char i;
+	unsigned char string_ptr[] = "Ingrese Datos." ;
+	i = 0;
+	while(i < 13)
+	{
+		*(unsigned char*)(pv+(2*i)) = (unsigned char)string_ptr[i];
+		i++;
+	}
+__asm__("xchg %bx,%bx");
+	return(0);
+}

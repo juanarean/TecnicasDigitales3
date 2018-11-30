@@ -22,6 +22,16 @@ __tarea1:
     shr ecx,3
     mov [_sumados_t1],ecx
     movq [_sumatoria_t1],mm2
+    xchg bx,bx
+    xor ecx,ecx
+    mov cl,8
+	mov eax, 0x000b8050
+    mov ebx, _sumados_t1
+    Pantalla:
+    mov byte dl, [ebx]
+    mov byte [eax], dl
+    inc ebx
+    loop Pantalla
 
 _hlt:    
     call SYSCALL_2_SEL:0
