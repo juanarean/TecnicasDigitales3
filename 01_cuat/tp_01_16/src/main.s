@@ -46,7 +46,8 @@ mov     al,11111100b
 out     21h,al
 
 mov eax,cr4
-or  eax,CR4_MASK
+or  eax,CR4_MASK	; habilito fxsave y fxrstor
+mov cr4, eax
 
 xor eax,eax
 xor ebx,ebx
